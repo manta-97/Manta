@@ -1,0 +1,7 @@
+manta-repo/node_modules/
+manta-repo/dist/
+manta-repo/packages/*/dist/
+manta-repo/.git/
+manta-doc/.git/
+manta-doc/.idea/
+.idea/

@@ -5,7 +5,11 @@
       "Bash(git:*)",
       "Bash(gh pr:*)",
       "Bash(npx jest *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(node packages/cli/dist/index.js:*)",
+      "Bash(gh issue:*)",
+      "Bash(npm test:*)",
+      "Read(//Users/ytlee/.claude/**)"
     ]
   }
 }

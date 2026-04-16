@@ -14,19 +14,33 @@ description: |
 
 staged 된 변경사항을 리뷰하고 커밋 메시지 후보를 작성하세요.
 
-> **⚠️ 절대로 `git commit`을 실행하지 마세요.** 커밋은 사용자가 직접 합니다. 이 스킬은 메시지 후보만 생성합니다.
+> **절대로 `git commit`을 실행하지 마세요.** 커밋은 사용자가 직접 합니다. 이 스킬은 메시지 후보만 생성합니다.
+
+### 0. 대상 레포 결정
+
+인자에 레포가 명시되어 있으면 해당 레포를 사용합니다.
+명시되지 않았으면, **양쪽 모두 확인**합니다:
+
+```bash
+git -C manta-repo diff --cached --stat 2>/dev/null
+git -C manta-doc diff --cached --stat 2>/dev/null
+```
+
+- staged 변경이 있는 레포를 대상으로 합니다.
+- 양쪽 모두 staged 변경이 있으면, 각각 따로 리뷰합니다.
+- 양쪽 모두 없으면 사용자에게 알리고 종료합니다.
+
+이하 `<repo>`는 결정된 대상 레포 경로입니다.
 
 ### 1. 정보 수집
 
 다음 명령을 **병렬로** 실행하세요:
 
 ```bash
-git -C manta-repo diff --cached          # staged 변경사항
-git -C manta-repo diff --cached --stat   # 변경 파일 요약
-git -C manta-repo branch --show-current  # 현재 브랜치명
+git -C <repo> diff --cached          # staged 변경사항
+git -C <repo> diff --cached --stat   # 변경 파일 요약
+git -C <repo> branch --show-current  # 현재 브랜치명
 ```
-
-staged 변경사항이 없으면 사용자에게 알리고 종료하세요.
 
 ### 2. 코드 리뷰
 
@@ -69,20 +83,6 @@ TASK-12: Add validation for user input on refund form
 - 첫 글자 대문자, 마침표 없음
 - 변경의 "무엇을"보다 "왜"에 초점
 - 50자 이내 권장, 필요하면 본문 추가
-
-#### 커밋 메시지 예시
-
-```
-TASK-12: Add input validation for worker refund amount
-```
-
-```
-QA-856: Fix off-by-one error in pagination offset calculation
-```
-
-```
-Update TypeScript config to enable strict null checks
-```
 
 ### 4. 출력 형식
 

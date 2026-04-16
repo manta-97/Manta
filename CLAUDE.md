@@ -10,94 +10,50 @@ This file is a guide for Claude Code when working on this repository.
 - **로컬-first**: 서버/클라우드 종속 없이 사용자가 데이터를 완전히 소유
 - **단순함 우선**: 복잡한 워크플로우, 과도한 설정을 거부
 
-## Commands
+## Project Structure
+
+이 워크스페이스는 3개의 독립 git 레포로 구성된다:
+
+```
+Manta/                  # 루트 — 하네스 설정 (CLAUDE.md, .claude/, .claudeignore)
+├── manta-repo/         # 코드 레포 — TypeScript monorepo (@manta/core, @manta/cli)
+└── manta-doc/          # 문서/태스크 레포 — 설계 문서, 태스크 추적, Manifesto
+```
+
+- **루트 git**: 하네스 설정만 관리 (manta-repo/, manta-doc/는 .gitignore로 제외)
+- **manta-repo git**: 코드 변경사항
+- **manta-doc git**: 문서, 태스크, 설계 결정
+
+각 서브 레포의 상세는 해당 레포의 `CLAUDE.md`를 참고한다.
+
+## Development Workflow
+
+### 태스크 기반 개발 흐름
+
+1. **태스크 확인**: `manta-doc/tasks/todo/`에서 다음 작업 확인
+2. **impl.md 작성**: 태스크 폴더에 구현 기획서 작성 (`/write-impl` 또는 `/write-impl-with-code`)
+3. **구현**: `manta-repo/`에서 코드 작성 (`/write-code` 또는 직접 작성)
+4. **리뷰·커밋**: 코드 리뷰 후 커밋 (`/review-commit`)
+5. **태스크 상태 전환**: 완료 시 `in-progress/` → `done/`으로 이동
+
+### 빠른 수정 (impl.md 불필요)
+
+간단한 버그 수정, 리팩터 등은 `/write-code`로 impl.md 없이 직접 코드를 수정한다.
+
+## Git Operations
+
+각 레포에서 개별적으로 git 작업한다:
 
 ```bash
-# Build all packages
-npm run --workspace packages/core build && npm run --workspace packages/cli build
+# manta-repo에서 커밋
+git -C manta-repo add .
+git -C manta-repo commit -m "message"
 
-# Run CLI
-node packages/cli/dist/index.js
-
-# Dev mode (watch)
-npm run --workspace packages/core dev
-npm run --workspace packages/cli dev
+# manta-doc에서 커밋
+git -C manta-doc add .
+git -C manta-doc commit -m "message"
 ```
 
-## Architecture
-
-### Project Structure
-```
-manta-repo/
-├── packages/
-│   ├── core/          # @manta/core — task CRUD, file I/O, state management
-│   │   └── src/
-│   └── cli/           # @manta/cli — CLI interface (commander)
-│       └── src/
-├── tsconfig.base.json # shared TS config
-└── package.json       # npm workspaces root
-```
-
-### Key Decisions
-- **TypeScript + CommonJS**: `module: node16`, source uses `import`, compiled output is CJS
-- **Monorepo**: npm workspaces, `@manta/core` is shared by CLI and future Electron app
-- **File-based tasks**: tasks are Markdown files with YAML frontmatter, not DB records
-- **CLI-first**: CLI is the primary interface, GUI is a layer on top
-
----
-
-## Code Design Principles
-
-### YAGNI (You Aren't Gonna Need It)
-- Do not write unused code. Remove it when found.
-- Do not add code "just in case it's needed later."
-- Unused return values, parameters, fields → remove.
-- Uncalled functions, unused imports → delete.
-
-### Naming (Critical)
-
-> **If you don't know the exact domain context or business logic, ASK the user. Do not guess.**
-
-#### Forbidden Patterns
-```typescript
-// BAD — too vague
-const data = getData()
-const result = process(items)
-const info = fetchInfo()
-
-// BAD — excessive abbreviation
-const usr = getUser()
-const calcAmt = calculateAmount()
-```
-
-#### Correct Patterns
-```typescript
-// GOOD — specific and clear
-const taskFileContent = readTaskFile(taskId)
-const filteredTasksByStatus = filterTasksByStatus(tasks, 'done')
-const parsedFrontmatter = parseYamlFrontmatter(rawContent)
-```
-
-#### Naming Checklist
-1. Can you understand what it is just by reading the name?
-2. Does it use domain terminology? (`data` → `taskFileContent`)
-3. Does it describe the action specifically? (`process()` → `parseAndValidateTaskFile()`)
-4. Is singular/plural clear? (list → `tasks`, single → `task`)
-
----
-
-## Testing
-
-### Principles
-- Test naming: `describe('[Feature]')` + `it('should [expected behavior]')`
-- Follow Given-When-Then flow
-- Mock external APIs and third-party services only
-- Time-dependent tests: use fake timers
-
-### Test Naming
-```typescript
-describe('TaskFileParser', () => {
-  it('should parse valid frontmatter and return task object', () => {})
-  it('should throw error when frontmatter is missing', () => {})
-})
-```
+### 브랜치 컨벤션
+- manta-repo: `task-N-short-description` (예: `task-7-manta-init`)
+- manta-doc: `main` 브랜치에서 직접 작업 (문서 특성상)
