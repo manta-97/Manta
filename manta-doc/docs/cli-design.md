@@ -16,7 +16,7 @@ GUI   ──▶ │             │
           └─────────────┘
                   │
                   ▼
-          derived SQLite index
+          root SQLite engine
 ```
 
 원칙:
@@ -25,14 +25,15 @@ GUI   ──▶ │             │
 - GUI는 CLI를 shell로 호출하거나 stdout/stderr를 파싱하지 않는다.
 - 로컬 파일 계약은 CLI가 아니라 `@manta/core`가 소유한다.
 - `@manta/core`는 런타임 의존성을 추가하지 않는다.
-- SQLite 인덱스 구현은 `@manta/core`의 무의존 원칙을 깨지 않도록 별도 모듈이나 adapter 경계에서 다룬다.
+- root SQLite 구현은 `@manta/core`의 무의존 원칙을 깨지 않도록 별도 모듈이나 adapter 경계에서 다룬다.
 
 ---
 
-## 로컬 SQLite 인덱스
+## Root SQLite 운영 계층
 
 Markdown 파일은 source of truth다.
-SQLite는 원본 DB가 아니라 각 프로젝트 안에 생성되는 파생 인덱스다.
+root SQLite는 원본 DB가 아니라 사용자 홈에 있는 로컬 작업 운영 엔진이다.
+여러 Manta 프로젝트를 빠르게 찾고, 검색하고, GUI와 context 기능을 빠르게 만들기 위한 계층이다.
 
 목적:
 
@@ -40,26 +41,46 @@ SQLite는 원본 DB가 아니라 각 프로젝트 안에 생성되는 파생 인
 - `manta search`를 빠르게 만든다.
 - GUI 목록/필터/검색을 빠르게 만든다.
 - `manta context`가 관련 task와 섹션을 빠르게 찾게 한다.
+- 여러 프로젝트의 최근 작업과 검색 결과를 한 곳에서 다룰 수 있게 한다.
 - 단순 Markdown 폴더보다 Manta 프로그램을 쓸 이유를 만든다.
 
-예상 위치:
+root DB 위치:
 
 ```text
-.manta/index.sqlite
+~/.manta/manta.sqlite
+```
+
+프로젝트 anchor 위치:
+
+```text
+<project>/.manta/project.json
+```
+
+`project.json`은 root DB와 프로젝트 폴더를 다시 연결하기 위한 최소 정보만 가진다.
+
+```json
+{
+  "projectId": "manta_proj_abc123",
+  "schemaVersion": 1,
+  "createdAt": "2026-05-03"
+}
 ```
 
 원칙:
 
-- SQLite는 삭제해도 Markdown task 파일에서 다시 만들 수 있어야 한다.
-- SQLite에만 존재하는 사용자 데이터는 두지 않는다.
+- root SQLite는 삭제해도 project anchor와 Markdown task 파일에서 다시 만들 수 있어야 한다.
+- 작업 본문, 상태, 결정, 결과처럼 복구 불가능한 사용자 데이터는 SQLite에만 두지 않는다.
 - Git으로 추적할 기본 자산은 Markdown task 파일이다.
-- 인덱스가 없거나 깨졌을 때는 `manta index rebuild`로 복구한다.
-- 인덱스는 성능과 제품 경험을 위한 계층이지, 소유권의 원본이 아니다.
+- `.manta/project.json`은 프로젝트 식별 anchor이고, `~/.manta/manta.sqlite`는 기본적으로 Git 추적 대상이 아니다.
+- root DB가 없거나 깨졌을 때는 `manta index rebuild`로 복구한다.
+- root DB는 성능과 제품 경험을 위한 계층이지, 소유권의 원본이 아니다.
 
-초기 인덱스 대상:
+초기 root DB 대상:
 
 | 필드 | 설명 |
 |---|---|
+| `project_id` | `.manta/project.json`의 프로젝트 영구 ID |
+| `last_seen_path` | 마지막으로 확인한 프로젝트 경로 |
 | `id` | task id |
 | `title` | frontmatter title |
 | `status` | 폴더 위치에서 계산한 상태 |
@@ -68,13 +89,22 @@ SQLite는 원본 DB가 아니라 각 프로젝트 안에 생성되는 파생 인
 | `hash` | 파일 변경 감지용 해시 |
 | `body_text` | 검색용 본문 텍스트 |
 | `sections` | 선택적 섹션 위치 메타데이터 |
+| `context_rank` | context 후보 추출용 ranking/cache |
+| `ui_metadata` | 최근 조회/선택 상태 같은 로컬 UI 메타데이터 |
 
 인덱스 명령 후보:
 
 | 명령어 | 설명 |
 |---|---|
-| `manta index rebuild` | Markdown task 파일을 스캔해 SQLite 인덱스를 다시 만든다 |
-| `manta index check` | 인덱스와 파일 상태가 맞는지 확인한다 |
+| `manta index rebuild` | project anchor와 Markdown task 파일을 스캔해 root DB를 다시 만든다 |
+| `manta index check` | root DB의 경로, 해시, 파일 상태가 맞는지 확인한다 |
+
+프로젝트 폴더 이동 처리:
+
+- Manta는 현재 경로에서 `.manta/project.json`을 찾는다.
+- `projectId`로 root DB의 기존 프로젝트 record를 찾는다.
+- `last_seen_path`가 현재 경로와 다르면 새 경로로 갱신한다.
+- 필요하면 Markdown task 파일을 다시 스캔해 인덱스를 갱신한다.
 
 ---
 
@@ -85,7 +115,8 @@ Manta는 사용자의 git repo 안에 일반 폴더로 존재한다.
 
 ```
 my-project/
-├── .manta/                       # 프로젝트 마커
+├── .manta/
+│   └── project.json              # root DB와 연결되는 프로젝트 anchor
 └── manta/                        # 사용자 선택 경로, 기본값: manta/
     └── tasks/
         ├── todo/
@@ -105,6 +136,7 @@ my-project/
 - **위치 선택 가능**: `manta init [path]`로 경로를 지정한다.
 - **1 repo = 1 Manta**: 별도 프로젝트 개념을 만들지 않는다.
 - **상태는 폴더로 드러낸다**: 상태 질의는 파싱이 아니라 파일 시스템 탐색으로 끝나야 한다.
+- **DB는 root에 둔다**: 무거운 SQLite는 `~/.manta/manta.sqlite`에서 관리하고, 프로젝트에는 작은 anchor만 둔다.
 
 ---
 
@@ -254,15 +286,15 @@ No tasks matched "oauth".
 No done tasks matched "oauth".
 ```
 
-### Phase 2: Local Index
+### Phase 2: Root SQLite
 
-`manta index`는 로컬 Markdown task 파일에서 SQLite 인덱스를 만든다.
-search, context, GUI는 이 인덱스를 사용할 수 있다.
+`manta index`는 project anchor와 로컬 Markdown task 파일에서 root SQLite를 만든다.
+search, context, GUI는 이 root DB를 사용할 수 있다.
 
 | 명령어 | 설명 |
 |---|---|
-| `manta index rebuild` | task 파일을 스캔해 인덱스 재생성 |
-| `manta index check` | 인덱스와 파일 상태 검증 |
+| `manta index rebuild` | project anchor와 task 파일을 스캔해 root DB 재생성 |
+| `manta index check` | root DB의 경로, 해시, 파일 상태 검증 |
 
 ### Phase 3: AI Context
 

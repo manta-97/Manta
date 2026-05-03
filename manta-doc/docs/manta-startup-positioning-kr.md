@@ -21,7 +21,7 @@ Manta는 local-first, AI-native 태스크 시스템으로 시작한다.
 태스크가 파일로 존재하고, 터미널에서 빠르게 관리할 수 있으며, 나중에 AI 세션의 컨텍스트로 다시 조립할 수 있는 가벼운 Linear 같은 제품이어야 한다.
 
 다만 Manta가 단순 Markdown 폴더 규약에만 머물면 제품의 이유가 약해진다.
-Markdown은 source of truth로 남기되, Manta는 각 프로젝트 안에 로컬 SQLite 인덱스를 만들어 검색, 목록, 상태 조회, context 후보 추출, GUI 표시를 빠르게 처리해야 한다.
+Markdown은 source of truth로 남기되, Manta는 사용자 홈의 root SQLite를 로컬 작업 운영 엔진으로 사용해 검색, 목록, 상태 조회, context 후보 추출, GUI 표시를 빠르게 처리해야 한다.
 사용자는 파일을 소유하고, Manta는 그 파일 위에 빠른 작업 운영 엔진을 제공한다.
 
 ## 제품 원칙
@@ -59,7 +59,7 @@ GUI   ──▶ │             │
           └─────────────┘
                   │
                   ▼
-          derived SQLite index
+          root SQLite engine
 ```
 
 원칙:
@@ -68,29 +68,46 @@ GUI   ──▶ │             │
 - GUI는 CLI를 shell로 호출하지 않는다.
 - GUI는 CLI stdout/stderr를 파싱하지 않는다.
 - 로컬 파일 계약은 `@manta/core`가 소유한다.
-- SQLite 인덱스 구현은 `@manta/core`의 무거운 런타임 의존성을 만들지 않도록 별도 모듈이나 adapter 경계에서 다룬다.
+- root SQLite 구현은 `@manta/core`의 무거운 런타임 의존성을 만들지 않도록 별도 모듈이나 adapter 경계에서 다룬다.
 
-### Markdown은 원본, SQLite는 인덱스
+### Markdown은 원본, root SQLite는 운영 엔진
 
 Manta의 source of truth는 계속 로컬 Markdown 파일이다.
-SQLite는 원본 DB가 아니라 파생 인덱스다.
+root SQLite는 원본 DB가 아니라 사용자 홈에 있는 로컬 작업 운영 엔진이다.
+
+root DB 위치:
+
+```text
+~/.manta/manta.sqlite
+```
+
+각 프로젝트에는 root DB와 다시 연결하기 위한 작은 anchor만 둔다.
+
+```text
+<project>/.manta/project.json
+```
+
+폴더가 이동되어도 Manta는 `projectId`로 root DB의 기존 기록을 찾고 `last_seen_path`를 갱신한다.
 
 SQLite가 다룰 수 있는 것:
 
+- project id와 마지막으로 확인한 프로젝트 경로
 - task id, title, status, created
 - 파일 경로와 파일 해시
 - 검색용 title/body 텍스트 인덱스
 - 선택적 섹션 위치: `Intent`, `Notes`, `Decisions`, `Result`
 - GUI 목록/검색/필터를 위한 캐시
 - `manta context` 후보 추출을 위한 메타데이터
+- 최근 조회/선택 상태 같은 로컬 UI 메타데이터
 
 원칙:
 
-- SQLite는 삭제해도 Markdown에서 다시 만들 수 있어야 한다.
-- SQLite에만 존재하는 사용자 데이터는 두지 않는다.
-- SQLite가 깨지면 `manta index rebuild`로 복구할 수 있어야 한다.
+- 작업 본문, 상태, 결정, 결과처럼 복구 불가능한 사용자 데이터는 SQLite에만 두지 않는다.
+- root SQLite는 삭제해도 project anchor와 Markdown에서 다시 만들 수 있어야 한다.
+- root SQLite가 깨지면 `manta index rebuild`로 복구할 수 있어야 한다.
 - Git으로 추적할 기본 자산은 Markdown 파일이다.
-- SQLite는 Manta 프로그램을 써야 하는 이유를 만든다. 빠른 검색, 빠른 GUI, 빠른 context 조립은 단순 폴더 규약만으로는 약하다.
+- root DB는 기본적으로 Git 추적 대상이 아니다.
+- root SQLite는 Manta 프로그램을 써야 하는 이유를 만든다. 빠른 검색, 빠른 GUI, 빠른 context 조립, multi-project 탐색은 단순 폴더 규약만으로는 약하다.
 
 ## 수요 근거
 
@@ -141,7 +158,7 @@ Manta는 다음 순서로 발전한다.
 
 ```text
 Local Linear
-→ Local Index
+→ Root SQLite
 → AI Context
 → Local GUI
 → Lightweight History
@@ -182,18 +199,22 @@ created: ...
 자유 본문
 ```
 
-### Phase 2: Local Index
+### Phase 2: Root SQLite
 
-각 프로젝트에 파생 SQLite 인덱스를 둔다.
-이 인덱스는 source of truth가 아니라 재생성 가능한 작업 엔진이다.
+사용자 홈에 root SQLite를 둔다.
+이 DB는 source of truth가 아니라 재생성 가능한 로컬 작업 운영 엔진이다.
 
-초기 인덱스는 다음을 지원한다.
+각 프로젝트에는 `.manta/project.json` anchor를 두고, root DB는 `projectId`로 프로젝트를 식별한다.
+프로젝트 폴더가 이동되면 `last_seen_path`를 갱신하고 필요한 인덱스를 다시 만든다.
+
+초기 root DB는 다음을 지원한다.
 
 - 상태별 task 목록
 - title/body 텍스트 검색
 - 파일 변경 감지
 - GUI 표시용 캐시
 - `manta context` 입력 후보 추출
+- multi-project 최근 작업과 검색
 
 예상 명령:
 
@@ -243,7 +264,8 @@ AI context는 상시 오른쪽 패널이 아니라 on-demand action이다.
 
 - preview는 read-only다.
 - 명시적 save action 없이는 파일을 변경하지 않는다.
-- GUI는 별도 DB나 별도 source of truth를 만들지 않는다.
+- GUI는 root SQLite를 표시/검색용 운영 계층으로 사용할 수 있다.
+- GUI는 별도 source of truth를 만들지 않는다.
 
 ### Phase 5: Lightweight History
 
@@ -334,7 +356,7 @@ task-13 이후 순서는 다음과 같다.
 3. `task-16`: `manta start` / `manta done`
 4. `task-17`: `manta edit`
 5. `task-18`: `manta search`
-6. `task-19`: local SQLite index v0
+6. `task-19`: root SQLite v0
 7. `task-20`: `manta context` v0
 8. `task-21`: Local Workspace GUI v0 기획
 
