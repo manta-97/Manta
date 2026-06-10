@@ -40,16 +40,17 @@ Local Linear
 
 ### 구현 순서
 
-현재 task-13 이후 순서는 다음과 같다.
+1. `task-14`: `manta add` — ✅ done
+2. `task-15`: `manta list` / `manta show` — ✅ done
+3. `task-16`: `manta start` / `manta done` — ✅ done
+4. `task-17`: `manta edit` — ✅ done
+5. `task-18`: `manta search` — ✅ done
+6. `task-19`: root SQLite v0 (`@manta/engine`, `manta index rebuild/check`) — ✅ done
+7. `task-20`: `manta context` v0 — 다음 작업
+8. `task-21`: Local Workspace GUI v0 — ✅ done (기획을 넘어 v0 구현까지: 프로젝트/task 목록, read-only 미리보기, add/start/done)
 
-1. `task-14`: `manta add`
-2. `task-15`: `manta list` / `manta show`
-3. `task-16`: `manta start` / `manta done`
-4. `task-17`: `manta edit`
-5. `task-18`: `manta search`
-6. `task-19`: root SQLite v0
-7. `task-20`: `manta context` v0
-8. `task-21`: Local Workspace GUI v0 기획
+Phase 1의 CLI 완료 기준은 2026-06-10에 충족됐다.
+상세 결과는 [phase-1-dev-report.md](phase-1-dev-report.md) 참고.
 
 ---
 

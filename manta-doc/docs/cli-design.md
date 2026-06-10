@@ -50,6 +50,9 @@ root DB 위치:
 ~/.manta/manta.sqlite
 ```
 
+`~/.manta/`에는 root DB와 프로젝트 레지스트리(`projects.json`)가 산다.
+`MANTA_HOME` 환경변수로 위치를 바꿀 수 있다 — 테스트 격리와 샌드박스 환경용 탈출구다.
+
 프로젝트 anchor 위치:
 
 ```text
@@ -62,9 +65,15 @@ root DB 위치:
 {
   "projectId": "manta_proj_abc123",
   "schemaVersion": 1,
-  "createdAt": "2026-05-03"
+  "createdAt": "2026-05-03",
+  "taskDir": "manta"
 }
 ```
+
+`taskDir`는 프로젝트 루트 기준 task 디렉토리 상대 경로다. `manta init docs`처럼
+비기본 경로로 초기화한 프로젝트에서도 하류 명령이 tasks 루트를 결정적으로 찾기 위해
+anchor에 둔다. anchor가 깨졌을 때는 기본값 `manta`로 동작한다 — anchor 손상이
+작업 파일 접근을 막아서는 안 된다.
 
 원칙:
 
@@ -245,6 +254,20 @@ AI가 직접 CLI를 쓰려면 실패 신호가 정확해야 한다.
 - CLI stderr는 사람이 읽을 수 있어야 한다.
 - error code는 테스트, AI 분기, GUI 표시를 위한 안정 식별자다.
 
+### CLI 전역 오류 정책 (task-11)
+
+위의 코드는 core Result의 분류다. CLI 표면에서는 세 분류와 exit code로 수렴한다.
+
+| 분류 | stderr 형식 | exit code |
+|---|---|---:|
+| unknown command | `[UNKNOWN_COMMAND] ...` | `2` |
+| usage error (잘못된 옵션/인자, `INVALID_TASK_ID` 포함) | `[USAGE_ERROR] ...` | `2` |
+| runtime failure (그 외 core 실패, I/O 실패) | `[RUNTIME_FAILURE] ...` | `1` |
+
+- 성공과 안전한 no-op(이미 목표 상태인 `start`/`done`, `ALREADY_INITIALIZED`)은 exit `0`.
+- 오류 경로에서 stdout은 비어 있다.
+- stderr에 echo되는 사용자 입력은 한 줄로 정규화(ANSI/제어문자 제거, 300자 절단)된다.
+
 ---
 
 ## 명령어
@@ -259,7 +282,7 @@ AI가 직접 CLI를 쓰려면 실패 신호가 정확해야 한다.
 | `manta show <id>` | 작업 상세 보기 |
 | `manta start <id>` | 작업을 `in-progress`로 이동 |
 | `manta done <id>` | 작업을 `done`으로 이동 |
-| `manta edit <id>` | 작업 파일 수정 |
+| `manta edit <id>` | `$VISUAL`/`$EDITOR`로 작업 파일 열기 (없으면 파일 경로 안내 후 실패) |
 | `manta search <query>` | 작업 title/body 텍스트 검색 |
 | `manta help [command]` | 도움말 |
 
@@ -286,7 +309,7 @@ No tasks matched "oauth".
 No done tasks matched "oauth".
 ```
 
-### Phase 2: Root SQLite
+### Phase 2: Root SQLite — 구현됨 (v0, task-19)
 
 `manta index`는 project anchor와 로컬 Markdown task 파일에서 root SQLite를 만든다.
 search, context, GUI는 이 root DB를 사용할 수 있다.
@@ -294,7 +317,13 @@ search, context, GUI는 이 root DB를 사용할 수 있다.
 | 명령어 | 설명 |
 |---|---|
 | `manta index rebuild` | project anchor와 task 파일을 스캔해 root DB 재생성 |
-| `manta index check` | root DB의 경로, 해시, 파일 상태 검증 |
+| `manta index check` | root DB의 경로, 해시, 파일 상태 검증. 불일치 시 issue 목록 + exit 1 |
+
+v0 구현 노트: SQLite는 `@manta/core`의 무의존 원칙을 지키기 위해 별도 패키지
+`@manta/engine`(better-sqlite3)에 산다. rebuild는 증분이 아니라 전체 재생성이다 —
+파일이 원본이므로 DB가 의심스러우면 다시 만드는 것이 가장 단순한 복구다.
+`manta index`는 실행 전 현재 프로젝트를 projectId 기준으로 재등록하므로
+폴더 이동 후에도 같은 프로젝트로 재연결된다.
 
 ### Phase 3: AI Context
 

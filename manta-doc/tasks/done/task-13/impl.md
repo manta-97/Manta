@@ -338,3 +338,19 @@ qa.md는 manta-doc에 있으므로 이번 impl 적용 시 함께 커밋한다. �
 - **task-18 `manta edit <id>`**: `$EDITOR` 스폰 또는 `--title` 플래그 — 방식 선택은 그 태스크에서.
 
 task-11(CLI 오류/exit code 정책)과 task-12(task-10 QA)는 이 태스크와 독립이다. task-12 qa.md는 위에서 언급한 대로 이번에 함께 갱신한다.
+
+---
+
+## 구현 결과 (2026-06-10)
+
+계획대로 적용 완료. 함께 확정된 사항:
+
+- `init`이 세 상태 폴더 + `.gitkeep`을 eager 생성한다. `.gitkeep`은 `wx` 플래그로
+  생성해 기존 파일을 덮어쓰지 않는다 (재-init 안전).
+- 이 태스크의 파일 계약 위에 task-14~18(add/list/show/start/done/edit/search)을
+  같은 흐름에서 구현했다 — 계약 변경 없이 그대로 동작함을 확인.
+- `.manta/`가 빈 마커에서 **anchor 디렉토리**로 승격됐다: `.manta/project.json`에
+  `projectId`/`schemaVersion`/`createdAt`/`taskDir`를 기록한다. `taskDir` 필드는
+  cli-design의 anchor 예시에는 없었지만, `manta init docs`처럼 비기본 경로로
+  초기화한 프로젝트에서 하류 명령이 tasks 루트를 결정적으로 찾으려면 필요했다.
+- task-12 qa.md의 S-1/S-8/S-9/S-10 기대값을 새 계약(명령 10개, exit 2, 세 폴더)으로 갱신했다.

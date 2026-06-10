@@ -68,6 +68,14 @@ USAGE
 
 COMMANDS
   init          Initialize a Manta project in the current directory
+  add           Create a new task in todo
+  list          List tasks grouped by status
+  show          Show task details
+  start         Move a task to in-progress
+  done          Move a task to done
+  edit          Open a task file in $EDITOR
+  search        Search task titles and bodies
+  index         Rebuild or check the root SQLite index (~/.manta/manta.sqlite)
   help          Show command list or details
 
 Run `manta help <command>` for details.
@@ -77,7 +85,7 @@ Status model: todo → in-progress → done.
 ```
 
 확인 포인트:
-- `COMMANDS` 섹션에 **`init`, `help` 딱 두 줄만**. `add`, `list`, `show`, `start`, `done`, `edit`가 등장하면 회귀.
+- `COMMANDS` 섹션에 **구현된 명령만** 등장한다 (task-14~19 이후 10개). `context`처럼 미구현 명령이 등장하면 회귀.
 - 타이틀에 em-dash `—`가 그대로 렌더됨 (UTF-8 터미널 전제).
 - exit code 0: `echo $?`
 
@@ -157,7 +165,7 @@ $MANTA help --json | jq '{kind, version, command_names: [.commands[].name]}'
 {
   "kind": "overview",
   "version": "1",
-  "command_names": ["init", "help"]
+  "command_names": ["init", "add", "list", "show", "start", "done", "edit", "search", "index", "help"]
 }
 ```
 
@@ -204,7 +212,7 @@ $MANTA help help --json | jq '{kind, options: .command.options}'
 
 ### S-8. `manta help xyz` — unknown command
 
-**보는 것**: help 범위의 exit code 계약. 이 태스크에서 확정한 유일한 "실패 exit 1" 경로다 (루트 unknown command / usage error 통일은 task-11 범위).
+**보는 것**: unknown command의 exit code 계약. task-11에서 루트/`help` 경로가 같은 정책으로 통일됐다 — usage 계열은 exit **2**, stderr는 `[UNKNOWN_COMMAND]` 형식.
 
 ```bash
 $MANTA help xyz
@@ -212,9 +220,9 @@ echo "exit: $?"
 ```
 
 기대:
-- **stderr**로 `Unknown command: xyz. Run \`manta help\` to see available commands.`
+- **stderr**로 `[UNKNOWN_COMMAND] Unknown command: xyz. Run \`manta help\` to see available commands.`
 - **stdout은 비어 있음** — prose/JSON 아무것도 나오면 안 된다.
-- exit code **1**.
+- exit code **2** (task-11 정책).
 
 stdout/stderr 분리 확인:
 
@@ -233,13 +241,13 @@ cat /tmp/manta-stderr      # Unknown command 메시지
 cd "$SCRATCH" && rm -rf .manta manta docs
 $MANTA init
 echo "exit: $?"
-ls -la .manta manta/tasks 2>/dev/null
+find .manta manta -type f | sort
 ```
 
 기대:
 - exit code 0.
-- `.manta/` 디렉토리 생성.
-- `manta/tasks/` 디렉토리 생성.
+- `.manta/project.json` 생성 (projectId/schemaVersion/createdAt/taskDir).
+- `manta/tasks/{todo,in-progress,done}/` 세 폴더와 각 폴더의 `.gitkeep` 생성 (task-13 계약).
 
 ### S-10. `manta init docs` — 경로 인자
 
@@ -247,13 +255,14 @@ ls -la .manta manta/tasks 2>/dev/null
 cd "$SCRATCH" && rm -rf .manta manta docs
 $MANTA init docs
 echo "exit: $?"
-ls -la .manta docs/tasks 2>/dev/null
+ls docs/tasks
 ```
 
 기대:
 - exit code 0.
-- `.manta/`, `docs/tasks/` 생성.
+- `.manta/project.json`, `docs/tasks/{todo,in-progress,done}/` 생성.
 - `manta/` 디렉토리는 **생성되지 않아야** 한다 (인자로 준 이름만 쓰인다).
+- `.manta/project.json`의 `taskDir`가 `"docs"`여야 한다.
 
 ### S-11. `NO_COLOR=1` — 색상 비활성
 
@@ -311,8 +320,8 @@ echo "OK: all three help paths are byte-identical"
 $MANTA help --json        | jq -e '.kind == "overview" and .version == "1"' > /dev/null && echo "OK: overview json"
 $MANTA help init --json   | jq -e '.kind == "command"  and .version == "1"' > /dev/null && echo "OK: command json"
 
-# unknown command exit code
-$MANTA help xyz 2>/dev/null ; [ $? -eq 1 ] && echo "OK: unknown exits 1"
+# unknown command exit code (task-11: usage 계열 = 2)
+$MANTA help xyz 2>/dev/null ; [ $? -eq 2 ] && echo "OK: unknown exits 2"
 ```
 
 세 블록이 전부 OK면 help 계약의 핵심은 무너지지 않은 것이다.
@@ -325,3 +334,26 @@ $MANTA help xyz 2>/dev/null ; [ $? -eq 1 ] && echo "OK: unknown exits 1"
 - `manta init --help --json` 조합 — impl.md에서 이번 스코프 제외 명시.
 - CP949 등 비 UTF-8 터미널 — 환경 가정에서 배제.
 - Windows cmd.exe / PowerShell 경로 — `diff <(...)`는 bash 문법이므로 git bash 또는 zsh 기준.
+
+---
+
+## 4. 실행 기록 (2026-06-10)
+
+task-11/13/14~19 적용 후 전 시나리오를 재실행했다. 기대값은 위에서 갱신한 새 계약 기준이다.
+
+| 시나리오 | 결과 |
+|---|---|
+| S-1 구현된 명령만 표시 (10개) | ✅ |
+| S-2 `help` ↔ `--help` byte 동일 | ✅ |
+| S-3 `help init` ↔ `init --help` byte 동일 | ✅ |
+| S-4 `help help` ↔ `help --help` byte 동일 (+add/search 경로 추가 확인) | ✅ |
+| S-5 overview JSON (kind/version/명령 10개) | ✅ |
+| S-6 command JSON | ✅ |
+| S-7 help options JSON | ✅ |
+| S-8 unknown command → stderr `[UNKNOWN_COMMAND]`, stdout 0 byte, exit 2 | ✅ |
+| S-9 `init` → anchor + 세 폴더 + .gitkeep | ✅ |
+| S-10 `init docs` → docs/tasks 아래 세 폴더, manta/ 미생성 | ✅ |
+| S-11 NO_COLOR / 파이프 출력에 ANSI 없음 | ✅ |
+| S-12 help example 전부 exit 0 | ✅ |
+
+자동 테스트 177개, lint 통과 상태에서 실행. 회귀 없음.

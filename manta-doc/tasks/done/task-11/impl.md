@@ -268,3 +268,25 @@ unknown command나 bad option처럼 사용자 입력이 stderr에 echo되는 경
 
 - **UNRESOLVED:** 0
 - **VERDICT:** CEO review found no critical gaps, but eng review is still required before implementation.
+
+---
+
+## 구현 결과 (2026-06-10)
+
+implementation-code.md를 기반으로 적용 완료. 적용 과정에서 확정된 차이 세 가지:
+
+1. **절단 한도 120 → 300자**. QA에서 `manta edit`의 "No editor configured" 안내가
+   파일 경로를 포함하는데 120자 절단이 경로를 잘라버리는 문제를 발견했다.
+   절단은 로그 hygiene용이지 정보 손실용이 아니므로 300자로 올렸다.
+2. **`commander.help` 계열 처리 추가**. 인자 없는 `manta`는 Commander가 help를
+   stderr로 보내는데 우리는 Commander stderr를 숨기므로, catch에서
+   `commander.help`를 받아 overview를 stdout으로 출력하고 exit 0으로 처리한다.
+   `commander.helpDisplayed`/`commander.version`은 이미 출력이 끝난 정상 종료로 본다.
+3. **`createCliErrorFromCoreFailure()` 추가**. task-14~18의 명령들이 core Result를
+   CLI 분류로 변환하는 단일 경로. `INVALID_TASK_ID`만 usage error(exit 2)로,
+   나머지 core 실패는 runtime failure(exit 1)로 매핑한다.
+
+또 하나: `exitOverride()`/`configureOutput()`은 `addCommand()`로 추가한 서브커맨드에
+복사되지 않는다. 서브커맨드마다 같은 정책을 직접 적용해야 root와 동일하게 동작한다.
+
+검증: cli-error-policy 단위 테스트 + runMantaCli 계약 테스트(stdout/stderr/exit code 동시 검증) 통과.
