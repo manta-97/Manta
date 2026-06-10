@@ -325,7 +325,7 @@ v0 구현 노트: SQLite는 `@manta/core`의 무의존 원칙을 지키기 위�
 `manta index`는 실행 전 현재 프로젝트를 projectId 기준으로 재등록하므로
 폴더 이동 후에도 같은 프로젝트로 재연결된다.
 
-### Phase 3: AI Context
+### Phase 3: AI Context — 구현됨 (v0, task-20)
 
 `manta context`는 완료된 작업을 미래 AI 세션의 입력으로 다시 꺼내는 명령이다.
 
@@ -355,11 +355,19 @@ manta context task-1 task-999 task-3
 
 ```text
 exit code: 1
-stderr: TASK_NOT_FOUND: task-999
+stderr: [RUNTIME_FAILURE] Runtime failure: Task not found: task-999
 stdout: 비어 있음
 ```
 
-### Phase 4: Local GUI
+v0 구현 노트:
+
+- stderr는 task-11의 통합 오류 정책 형식을 따른다 (위 예시가 현재 계약).
+- `--for` 목적 프리셋은 v0에서 제외했다 (실사용 증거가 생기면 재검토).
+- 절단은 헤더(제목/메타) 우선 보존 + task별 예산 균등 배분 + 섹션 우선순위
+  선별(Result > Decisions > Intent > 기타 > Notes, 원문 순서 유지)로 동작한다.
+- 출력 길이는 어떤 경우에도 `--max-chars`를 넘지 않는다.
+
+### Phase 4: Local GUI — 구현됨 (v1, task-21·23)
 
 GUI는 CLI/file contract 위에 올라가는 로컬 작업 공간이다.
 GUI는 무료 제품의 일부다.
@@ -384,6 +392,24 @@ AI context는 상시 오른쪽 패널이 아니라 on-demand action이다.
 - preview는 read-only다.
 - 명시적 save action 없이는 파일을 변경하지 않는다.
 - GUI는 Jira식 관리자 대시보드가 아니다.
+
+v1 구현 노트: 본문 에디터(draft + 명시적 Save/⌘S, frontmatter는 core가 보존),
+⌘K command palette(start/done/copy context + 즉석 add), Copy AI Context는
+CLI와 같은 `buildContextDocument()`를 호출한다.
+
+### Phase 6: Import / Export — 구현됨 (v0, task-24)
+
+| 명령어 | 설명 |
+|---|---|
+| `manta export` | 모든 task를 `manta-tasks` JSON 번들(v1)로 stdout에 출력 |
+| `manta import <file>` | 번들의 task들을 새 id로 재채번하여 가져온다 (`task-3 → task-12` 매핑 출력) |
+
+규칙:
+
+- export stdout은 순수 JSON이다. 깨진 task는 stderr 경고로만 보고하고 exit 0.
+- import는 쓰기 전에 번들 전체를 검증한다 — 부분 import는 없다 (`IMPORT_BUNDLE_INVALID`).
+- 원본 id는 보존하지 않는다. 대상 프로젝트의 id 단조 증가 규칙과 충돌 방지가 우선이다.
+- Jira/Notion/GitHub 커넥터는 이 번들 포맷의 변환기로 후속 구현한다.
 
 ---
 

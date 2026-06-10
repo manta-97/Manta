@@ -46,15 +46,17 @@ Local Linear
 4. `task-17`: `manta edit` — ✅ done
 5. `task-18`: `manta search` — ✅ done
 6. `task-19`: root SQLite v0 (`@manta/engine`, `manta index rebuild/check`) — ✅ done
-7. `task-20`: `manta context` v0 — 다음 작업
+7. `task-20`: `manta context` v0 — ✅ done
 8. `task-21`: Local Workspace GUI v0 — ✅ done (기획을 넘어 v0 구현까지: 프로젝트/task 목록, read-only 미리보기, add/start/done)
 
 Phase 1의 CLI 완료 기준은 2026-06-10에 충족됐다.
 상세 결과는 [phase-1-dev-report.md](phase-1-dev-report.md) 참고.
+이후 같은 날 Phase 3~6 구현과 Phase 7 방향 기획까지 완료됐다 —
+[phase-3-7-dev-report.md](phase-3-7-dev-report.md) 참고.
 
 ---
 
-## Phase 2: Root SQLite
+## Phase 2: Root SQLite — ✅ 구현됨 (v0, task-19)
 
 사용자 홈에 root SQLite를 둔다.
 Markdown 파일이 source of truth이고, root SQLite는 빠른 조회와 제품 경험을 위한 로컬 작업 운영 엔진이다.
@@ -112,7 +114,7 @@ root DB 위치:
 
 ---
 
-## Phase 3: AI Context
+## Phase 3: AI Context — ✅ 구현됨 (v0, task-20)
 
 완료된 작업과 진행 중인 작업을 미래 AI 세션의 입력으로 다시 꺼낼 수 있게 한다.
 
@@ -139,7 +141,7 @@ root DB 위치:
 
 ---
 
-## Phase 4: Local GUI
+## Phase 4: Local GUI — ✅ 구현됨 (v1, task-21·23)
 
 GUI는 무료 제품의 일부다.
 CLI-only 제품이 아니라 CLI-first 제품으로 간다.
@@ -163,7 +165,7 @@ CLI-only 제품이 아니라 CLI-first 제품으로 간다.
 
 ---
 
-## Phase 5: Lightweight History
+## Phase 5: Lightweight History — ✅ 구현됨 (task-22)
 
 작업 파일 안의 선택적 섹션을 점진적으로 표준화한다.
 처음부터 무거운 handoff packet을 강제하지 않는다.
@@ -185,7 +187,7 @@ CLI-only 제품이 아니라 CLI-first 제품으로 간다.
 
 ---
 
-## Phase 6: Import / Export
+## Phase 6: Import / Export — ✅ v0 구현됨 (task-24, JSON 번들)
 
 Manta가 local source of truth라는 점이 분명해진 뒤 외부 시스템과 연결한다.
 
@@ -200,9 +202,13 @@ Manta가 local source of truth라는 점이 분명해진 뒤 외부 시스템과
 - Jira/Notion/GitHub는 원본이 아니라 bridge다.
 - import/export는 Manta의 로컬 작업 기록을 흐리면 안 된다.
 
+v0 구현 노트: 커넥터들이 공통으로 딛고 설 `manta-tasks` JSON 번들 포맷(v1)과
+`manta export`/`manta import <file>` round-trip을 먼저 고정했다.
+외부 커넥터는 이 번들의 변환기로 후속 구현한다.
+
 ---
 
-## Phase 7: Pro Layer
+## Phase 7: Pro Layer — 방향 기획 고정 ([pro-layer-plan.md](pro-layer-plan.md))
 
 무료 제품은 한 대의 로컬 머신에서 완결된 느낌이어야 한다.
 Pro는 여러 기기, 깊은 검색, 고급 context intelligence, 외부 시스템 bridge가 필요해지는 순간부터 시작한다.
