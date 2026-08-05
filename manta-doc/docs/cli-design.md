@@ -5,27 +5,27 @@
 Manta CLI는 파일 기반 작업 시스템의 표준 인터페이스다.
 사람, 스크립트, AI 에이전트가 모두 같은 명령어와 같은 파일 계약으로 작업을 조작한다.
 
-CLI는 유일한 제품 표면이 아니라 `@manta/core` 위에 올라가는 adapter다.
-향후 GUI도 같은 core와 같은 로컬 파일 계약을 사용해야 한다.
+CLI는 유일한 제품 표면이 아니라 `internal/core` 위에 올라가는 adapter다.
+향후 GUI(Wails)도 같은 core와 같은 로컬 파일 계약을 사용해야 한다.
 
 ```
-          ┌─────────────┐
-CLI   ──▶ │             │
-          │ @manta/core │ ──▶ local files
-GUI   ──▶ │             │
-          └─────────────┘
+          ┌────────────────┐
+CLI   ──▶ │                │
+          │ internal/core  │ ──▶ local files
+GUI   ──▶ │                │
+(Wails)   └────────────────┘
                   │
                   ▼
-          root SQLite engine
+          internal/engine (root SQLite)
 ```
 
 원칙:
 
-- CLI와 GUI는 `@manta/core` 위의 동등한 adapter다.
-- GUI는 CLI를 shell로 호출하거나 stdout/stderr를 파싱하지 않는다.
-- 로컬 파일 계약은 CLI가 아니라 `@manta/core`가 소유한다.
-- `@manta/core`는 런타임 의존성을 추가하지 않는다.
-- root SQLite 구현은 `@manta/core`의 무의존 원칙을 깨지 않도록 별도 모듈이나 adapter 경계에서 다룬다.
+- CLI와 GUI는 `internal/core` 위의 동등한 adapter다.
+- GUI는 CLI를 shell로 호출하거나 stdout/stderr를 파싱하지 않는다 (Wails binding으로 core 호출).
+- 로컬 파일 계약은 CLI가 아니라 `internal/core`가 소유한다.
+- `internal/core`는 가능한 한 stdlib 위주이며 무거운 런타임 의존성을 추가하지 않는다.
+- root SQLite 구현은 `internal/engine` adapter 경계에 둔다.
 
 ---
 
@@ -309,7 +309,7 @@ No tasks matched "oauth".
 No done tasks matched "oauth".
 ```
 
-### Phase 2: Root SQLite — 구현됨 (v0, task-19)
+### Phase 2: Root SQLite
 
 `manta index`는 project anchor와 로컬 Markdown task 파일에서 root SQLite를 만든다.
 search, context, GUI는 이 root DB를 사용할 수 있다.
@@ -319,13 +319,13 @@ search, context, GUI는 이 root DB를 사용할 수 있다.
 | `manta index rebuild` | project anchor와 task 파일을 스캔해 root DB 재생성 |
 | `manta index check` | root DB의 경로, 해시, 파일 상태 검증. 불일치 시 issue 목록 + exit 1 |
 
-v0 구현 노트: SQLite는 `@manta/core`의 무의존 원칙을 지키기 위해 별도 패키지
-`@manta/engine`(better-sqlite3)에 산다. rebuild는 증분이 아니라 전체 재생성이다 —
+구현 노트: SQLite는 `internal/core`의 가벼운 경계를 지키기 위해 `internal/engine`에 산다.
+순수 Go 드라이버(`modernc.org/sqlite`)를 우선한다. rebuild는 증분이 아니라 전체 재생성이다 —
 파일이 원본이므로 DB가 의심스러우면 다시 만드는 것이 가장 단순한 복구다.
 `manta index`는 실행 전 현재 프로젝트를 projectId 기준으로 재등록하므로
 폴더 이동 후에도 같은 프로젝트로 재연결된다.
 
-### Phase 3: AI Context — 구현됨 (v0, task-20)
+### Phase 3: AI Context
 
 `manta context`는 완료된 작업을 미래 AI 세션의 입력으로 다시 꺼내는 명령이다.
 
@@ -359,18 +359,18 @@ stderr: [RUNTIME_FAILURE] Runtime failure: Task not found: task-999
 stdout: 비어 있음
 ```
 
-v0 구현 노트:
+v0 계약 노트:
 
-- stderr는 task-11의 통합 오류 정책 형식을 따른다 (위 예시가 현재 계약).
-- `--for` 목적 프리셋은 v0에서 제외했다 (실사용 증거가 생기면 재검토).
+- stderr는 통합 오류 정책 형식을 따른다 (위 예시가 계약).
+- `--for` 목적 프리셋은 v0에서 제외 (실사용 증거가 생기면 재검토).
 - 절단은 헤더(제목/메타) 우선 보존 + task별 예산 균등 배분 + 섹션 우선순위
   선별(Result > Decisions > Intent > 기타 > Notes, 원문 순서 유지)로 동작한다.
 - 출력 길이는 어떤 경우에도 `--max-chars`를 넘지 않는다.
 
-### Phase 4: Local GUI — 구현됨 (v1, task-21·23)
+### Phase 4: Local GUI (Wails)
 
 GUI는 CLI/file contract 위에 올라가는 로컬 작업 공간이다.
-GUI는 무료 제품의 일부다.
+스택은 **Wails**다 (Electron 폐기). GUI는 무료 제품의 일부다.
 
 v0 방향:
 
@@ -392,12 +392,10 @@ AI context는 상시 오른쪽 패널이 아니라 on-demand action이다.
 - preview는 read-only다.
 - 명시적 save action 없이는 파일을 변경하지 않는다.
 - GUI는 Jira식 관리자 대시보드가 아니다.
+- Wails Go binding으로 `internal/core`를 직접 호출한다. CLI shell 호출·stdout 파싱 금지.
+- Copy AI Context는 CLI와 같은 core 함수를 공유한다.
 
-v1 구현 노트: 본문 에디터(draft + 명시적 Save/⌘S, frontmatter는 core가 보존),
-⌘K command palette(start/done/copy context + 즉석 add), Copy AI Context는
-CLI와 같은 `buildContextDocument()`를 호출한다.
-
-### Phase 6: Import / Export — 구현됨 (v0, task-24)
+### Phase 6: Import / Export
 
 | 명령어 | 설명 |
 |---|---|

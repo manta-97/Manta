@@ -16,7 +16,7 @@ This file is a guide for Claude Code when working on this repository.
 
 ```
 Manta/                  # 루트 — 하네스 설정 (CLAUDE.md, .claude/, .claudeignore)
-├── manta-repo/         # 코드 레포 — TypeScript monorepo (@manta/core, @manta/cli)
+├── manta-repo/         # 코드 레포 — Go module (internal/core, cmd/manta, desktop/Wails)
 └── manta-doc/          # 문서/태스크 레포 — 설계 문서, 태스크 추적, Manifesto
 ```
 
@@ -25,6 +25,14 @@ Manta/                  # 루트 — 하네스 설정 (CLAUDE.md, .claude/, .cla
 - **manta-doc git**: 문서, 태스크, 설계 결정
 
 각 서브 레포의 상세는 해당 레포의 `CLAUDE.md`를 참고한다.
+
+## Stack (2026 rewrite)
+
+- **Backend / CLI**: Go
+- **Desktop GUI**: Wails (not Electron)
+- **파일 계약**: `internal/core`
+- **root SQLite**: `internal/engine`
+- TS monorepo (`@manta/*`) 및 Electron은 폐기됨. Phase 1부터 Go로 재구현한다.
 
 ## Development Workflow
 
@@ -55,5 +63,5 @@ git -C manta-doc commit -m "message"
 ```
 
 ### 브랜치 컨벤션
-- manta-repo: `task-N-short-description` (예: `task-7-manta-init`)
+- manta-repo: `task-N-short-description` (예: `task-1-module-scaffold`)
 - manta-doc: `main` 브랜치에서 직접 작업 (문서 특성상)

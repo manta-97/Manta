@@ -52,23 +52,22 @@ GUI는 Jira식 관리자 대시보드가 아니다.
 ### CLI와 GUI는 같은 core를 쓴다
 
 ```
-          ┌─────────────┐
-CLI   ──▶ │             │
-          │ @manta/core │ ──▶ local files
-GUI   ──▶ │             │
-          └─────────────┘
+          ┌────────────────┐
+CLI   ──▶ │                │
+          │ internal/core  │ ──▶ local files
+GUI   ──▶ │                │
+(Wails)   └────────────────┘
                   │
                   ▼
-          root SQLite engine
+          internal/engine (root SQLite)
 ```
 
 원칙:
 
-- CLI와 GUI는 `@manta/core` 위의 동등한 adapter다.
-- GUI는 CLI를 shell로 호출하지 않는다.
-- GUI는 CLI stdout/stderr를 파싱하지 않는다.
-- 로컬 파일 계약은 `@manta/core`가 소유한다.
-- root SQLite 구현은 `@manta/core`의 무거운 런타임 의존성을 만들지 않도록 별도 모듈이나 adapter 경계에서 다룬다.
+- CLI와 GUI는 `internal/core` 위의 동등한 adapter다.
+- GUI는 Wails binding으로 core를 호출한다. CLI shell 호출·stdout 파싱 금지.
+- 로컬 파일 계약은 `internal/core`가 소유한다.
+- root SQLite 구현은 `internal/engine` adapter 경계에 둔다.
 
 ### Markdown은 원본, root SQLite는 운영 엔진
 

@@ -433,6 +433,6 @@ Manta CLI를 만들 때 중요한 것은 명령어가 “동작한다”는 사�
 - exit code는 AI와 스크립트의 분기 신호다.
 - JSON 출력은 작고 안정적인 제품 계약이다.
 
-이 원칙이 잡히면 Electron GUI를 만들 때도 구조가 단순해진다.
-GUI는 CLI stdout을 파싱하지 않고 `@manta/core`를 직접 호출하겠지만,
+이 원칙이 잡히면 Wails GUI를 만들 때도 구조가 단순해진다.
+GUI는 CLI stdout을 파싱하지 않고 `internal/core`를 직접 호출하겠지만,
 CLI에서 정리한 성공/실패 모델과 데이터 계약은 그대로 GUI 설계의 기준이 된다.

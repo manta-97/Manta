@@ -1,5 +1,8 @@
 # Phase 3~7 개발 결과 보고 — AI Context · GUI v1 · Sections · Import/Export · Pro 기획
 
+> **ARCHIVED (TS/Electron era).** 2026-08부터 스택은 Go + Wails로 재구현한다.
+> 이 문서는 이전 구현의 의사결정·교훈 참고용이다. 현재 로드맵 완료 상태가 아니다.
+>
 > 2026-06-10 · manta-repo 브랜치 `phase3-6-context-gui-export` · [Phase 1 보고서](phase-1-dev-report.md)에 이어짐
 
 ## 1. 어디서 출발했나

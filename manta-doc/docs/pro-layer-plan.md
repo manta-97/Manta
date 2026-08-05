@@ -19,10 +19,10 @@
 
 | 무료 (로컬 완결) | Pro (연속성·지능) |
 |---|---|
-| CLI 전체 (13개 명령) | encrypted continuity sync (여러 기기) |
-| 파일 계약 + root SQLite 엔진 | 사용자 소유 백업 대상 (S3/iCloud 등) |
+| CLI 전체 (Go, `cmd/manta`) | encrypted continuity sync (여러 기기) |
+| 파일 계약 + root SQLite (`internal/engine`) | 사용자 소유 백업 대상 (S3/iCloud 등) |
 | `manta context` (extractive) | semantic search (임베딩 기반) |
-| Local Workspace GUI (에디터·palette 포함) | advanced context compiler (요약·압축) |
+| Local Workspace GUI (Wails, 에디터·palette 포함) | advanced context compiler (요약·압축) |
 | `manta export/import` (JSON 번들) | Jira/Notion/GitHub 커넥터 |
 | Git-friendly backup | team/shared workspace (후순위) |
 

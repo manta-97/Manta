@@ -13,6 +13,28 @@ Local Linear
 → Pro Layer
 ```
 
+## Stack rewrite (2026-08)
+
+TypeScript monorepo + Electron 구현은 폐기했다.
+**Go + Wails**로 Phase 1부터 다시 구현한다.
+
+| 이전 (폐기) | 현재 |
+|---|---|
+| TypeScript / npm workspaces | Go module |
+| `@manta/core` / `@manta/cli` / `@manta/engine` | `internal/core` / `internal/cli` / `internal/engine` |
+| Electron (`@manta/desktop`) | Wails (`desktop/`) |
+| better-sqlite3 | Go SQLite driver (`internal/engine`, pure Go 우선) |
+
+파일 계약(Markdown task, 폴더 상태, anchor, root SQLite 역할)과 CLI 명령 표면은 유지한다.
+구현 언어와 GUI 셸만 교체한다.
+
+TS 시대 완료 보고는 참고용으로 남긴다:
+
+- [phase-1-dev-report.md](phase-1-dev-report.md) (archived — TS/Electron)
+- [phase-3-7-dev-report.md](phase-3-7-dev-report.md) (archived — TS/Electron)
+
+---
+
 ## Phase 1: Local Linear
 
 로컬 파일 기반 작업 관리의 핵심을 구현한다.
@@ -38,25 +60,21 @@ Local Linear
 - title과 Markdown body를 텍스트 검색할 수 있다.
 - AI가 `manta help`로 명령어를 학습하고 사용할 수 있다.
 
-### 구현 순서
+### 구현 순서 (Go rewrite)
 
-1. `task-14`: `manta add` — ✅ done
-2. `task-15`: `manta list` / `manta show` — ✅ done
-3. `task-16`: `manta start` / `manta done` — ✅ done
-4. `task-17`: `manta edit` — ✅ done
-5. `task-18`: `manta search` — ✅ done
-6. `task-19`: root SQLite v0 (`@manta/engine`, `manta index rebuild/check`) — ✅ done
-7. `task-20`: `manta context` v0 — ✅ done
-8. `task-21`: Local Workspace GUI v0 — ✅ done (기획을 넘어 v0 구현까지: 프로젝트/task 목록, read-only 미리보기, add/start/done)
-
-Phase 1의 CLI 완료 기준은 2026-06-10에 충족됐다.
-상세 결과는 [phase-1-dev-report.md](phase-1-dev-report.md) 참고.
-이후 같은 날 Phase 3~6 구현과 Phase 7 방향 기획까지 완료됐다 —
-[phase-3-7-dev-report.md](phase-3-7-dev-report.md) 참고.
+1. `task-1`: Go module scaffold + CLI entry — in progress (scaffold only)
+2. `task-2`: 오류 정책 (exit 0/1/2, `[CODE] message`)
+3. `task-3`: 폴더 상태 모델 + project anchor
+4. `task-4`: `manta init` / `manta help`
+5. `task-5`: `manta add`
+6. `task-6`: `manta list` / `manta show`
+7. `task-7`: `manta start` / `manta done`
+8. `task-8`: `manta edit`
+9. `task-9`: `manta search`
 
 ---
 
-## Phase 2: Root SQLite — ✅ 구현됨 (v0, task-19)
+## Phase 2: Root SQLite
 
 사용자 홈에 root SQLite를 둔다.
 Markdown 파일이 source of truth이고, root SQLite는 빠른 조회와 제품 경험을 위한 로컬 작업 운영 엔진이다.
@@ -101,7 +119,7 @@ root DB 위치:
 - root SQLite는 삭제해도 project anchor와 Markdown에서 다시 만들 수 있어야 한다.
 - root DB가 깨져도 작업 파일은 안전해야 한다.
 - search, context, GUI는 root DB를 사용해 빨라질 수 있지만, 원본은 항상 파일이다.
-- root SQLite 구현은 `@manta/core`의 무거운 런타임 의존성을 만들지 않도록 별도 모듈이나 adapter 경계에서 다룬다.
+- root SQLite 구현은 `internal/engine`에 둔다. `internal/core`에 무거운 의존성을 넣지 않는다.
 - root DB는 기본적으로 Git 추적 대상이 아니다.
 
 ### 완료 기준
@@ -114,7 +132,7 @@ root DB 위치:
 
 ---
 
-## Phase 3: AI Context — ✅ 구현됨 (v0, task-20)
+## Phase 3: AI Context
 
 완료된 작업과 진행 중인 작업을 미래 AI 세션의 입력으로 다시 꺼낼 수 있게 한다.
 
@@ -122,7 +140,7 @@ root DB 위치:
 
 - `manta context <task-id...>` — 여러 작업을 AI용 Markdown context로 출력
 - `manta context <task-id...> --max-chars 6000` — 문자 수 제한
-- `manta context <task-id> --for pr-review` — PR 리뷰 목적 출력
+- `manta context <task-id> --for pr-review` — PR 리뷰 목적 출력 (후순위)
 
 ### v0 원칙
 
@@ -141,10 +159,11 @@ root DB 위치:
 
 ---
 
-## Phase 4: Local GUI — ✅ 구현됨 (v1, task-21·23)
+## Phase 4: Local GUI (Wails)
 
 GUI는 무료 제품의 일부다.
 CLI-only 제품이 아니라 CLI-first 제품으로 간다.
+데스크톱 셸은 **Wails**다 (Electron 아님).
 
 ### 방향
 
@@ -155,7 +174,7 @@ CLI-only 제품이 아니라 CLI-first 제품으로 간다.
 
 ### 원칙
 
-- GUI는 `@manta/core` 위의 adapter다.
+- GUI는 `internal/core` 위의 adapter다 (Wails Go binding).
 - GUI는 root SQLite를 표시/검색용 운영 계층으로 사용할 수 있다.
 - GUI는 CLI를 shell로 호출하지 않는다.
 - GUI는 CLI stdout/stderr를 파싱하지 않는다.
@@ -165,7 +184,7 @@ CLI-only 제품이 아니라 CLI-first 제품으로 간다.
 
 ---
 
-## Phase 5: Lightweight History — ✅ 구현됨 (task-22)
+## Phase 5: Lightweight History
 
 작업 파일 안의 선택적 섹션을 점진적으로 표준화한다.
 처음부터 무거운 handoff packet을 강제하지 않는다.
@@ -187,7 +206,7 @@ CLI-only 제품이 아니라 CLI-first 제품으로 간다.
 
 ---
 
-## Phase 6: Import / Export — ✅ v0 구현됨 (task-24, JSON 번들)
+## Phase 6: Import / Export
 
 Manta가 local source of truth라는 점이 분명해진 뒤 외부 시스템과 연결한다.
 
@@ -202,13 +221,13 @@ Manta가 local source of truth라는 점이 분명해진 뒤 외부 시스템과
 - Jira/Notion/GitHub는 원본이 아니라 bridge다.
 - import/export는 Manta의 로컬 작업 기록을 흐리면 안 된다.
 
-v0 구현 노트: 커넥터들이 공통으로 딛고 설 `manta-tasks` JSON 번들 포맷(v1)과
-`manta export`/`manta import <file>` round-trip을 먼저 고정했다.
+v0 목표: 커넥터들이 공통으로 딛고 설 `manta-tasks` JSON 번들 포맷(v1)과
+`manta export`/`manta import <file>` round-trip을 먼저 고정한다.
 외부 커넥터는 이 번들의 변환기로 후속 구현한다.
 
 ---
 
-## Phase 7: Pro Layer — 방향 기획 고정 ([pro-layer-plan.md](pro-layer-plan.md))
+## Phase 7: Pro Layer — 방향 기획 ([pro-layer-plan.md](pro-layer-plan.md))
 
 무료 제품은 한 대의 로컬 머신에서 완결된 느낌이어야 한다.
 Pro는 여러 기기, 깊은 검색, 고급 context intelligence, 외부 시스템 bridge가 필요해지는 순간부터 시작한다.
@@ -219,7 +238,7 @@ Pro는 여러 기기, 깊은 검색, 고급 context intelligence, 외부 시스�
 - local file contract
 - local task CRUD/search
 - basic `manta context`
-- Local Workspace GUI
+- Local Workspace GUI (Wails)
 - Markdown task editor
 - local context preview
 - Git-friendly backup

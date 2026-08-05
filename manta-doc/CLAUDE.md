@@ -1,13 +1,19 @@
 # manta-doc — Documentation & Task Tracking
 
+## Stack note
+
+구현 스택은 **Go + Wails**다 (TS monorepo / Electron 폐기).
+전환 배경: [docs/stack-go-wails.md](docs/stack-go-wails.md)
+
 ## Structure
 
 ```
 manta-doc/
 ├── Manifesto.md              # 프로젝트 철학 원본 (의사결정 기준)
 ├── docs/                     # 설계 문서
+│   ├── stack-go-wails.md     # 스택 전환 기록
 │   ├── cli-design.md         # CLI 설계 명세
-│   └── roadmap.md            # Phase 1-3 로드맵
+│   └── roadmap.md            # Phase 로드맵 (Go rewrite 기준)
 └── tasks/                    # 태스크 추적
     ├── todo/                 # 대기 중
     │   └── task-N/

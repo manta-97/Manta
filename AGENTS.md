@@ -3,7 +3,7 @@
 ## Workspace shape
 - This workspace has three independent git repositories:
   - `Manta/` is the harness repo for shared agent settings.
-  - `manta-repo/` is the code repo.
+  - `manta-repo/` is the code repo (Go + Wails).
   - `manta-doc/` is the docs and task repo.
 - The root git repository does not own `manta-repo/` or `manta-doc/`. Run git commands in the repository that owns the files you changed.
 
@@ -11,6 +11,10 @@
 - Read [CLAUDE.md](/Users/ytlee/Manta/CLAUDE.md) before changing root harness files.
 - Read [CLAUDE.md](/Users/ytlee/Manta/manta-repo/CLAUDE.md) before changing files in `manta-repo/`.
 - Read [CLAUDE.md](/Users/ytlee/Manta/manta-doc/CLAUDE.md) before changing files in `manta-doc/`.
+
+## Stack
+- Go module in `manta-repo/` (`cmd/manta`, `internal/core`, `internal/engine`, `desktop` Wails)
+- Do not reintroduce TypeScript packages, npm workspaces, or Electron
 
 ## Workflow
 - Prefer task-based work:
@@ -30,9 +34,8 @@
 ## Code rules for `manta-repo`
 - Follow YAGNI. Do not add code for hypothetical future use.
 - Use specific domain names. Avoid vague names like `data`, `result`, or `info`.
-- Keep `@manta/core` free of runtime dependencies.
+- Keep `internal/core` free of heavy runtime dependencies (SQLite lives in `internal/engine`).
 - Use the existing repository commands when verification is needed:
-  - `npm run build`
-  - `npm test`
-  - `npm run lint`
-
+  - `go build -o bin/manta ./cmd/manta`
+  - `go test ./...`
+  - `go vet ./...`
