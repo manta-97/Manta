@@ -63,7 +63,7 @@ TS 시대 완료 보고는 참고용으로 남긴다:
 ### 구현 순서 (Go rewrite)
 
 1. `task-1`: Go module scaffold + CLI entry — in progress (scaffold only)
-2. `task-2`: 오류 정책 (exit 0/1/2, `[CODE] message`)
+2. `task-2`: 종료·출력 계약 (exit 0/1/2 정석, 사람용 stderr, stdout/stderr 분리)
 3. `task-3`: 폴더 상태 모델 + project anchor
 4. `task-4`: `manta init` / `manta help`
 5. `task-5`: `manta add`

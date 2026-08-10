@@ -321,15 +321,13 @@ Sync 원칙:
 
 ## 오류와 empty state 원칙
 
-task 조회 실패는 구분한다.
+CLI 공개 계약은 정석에 맞춘다 (상세: [cli-design.md](cli-design.md)).
 
-```text
-INVALID_TASK_ID
-TASK_NOT_FOUND
-DUPLICATE_TASK_ID
-TASK_FILE_UNREADABLE
-TASK_FILE_MALFORMED
-```
+| exit | 의미 |
+|---:|---|
+| 0 | 성공 · 검색 0건 · idempotent no-op |
+| 1 | 실행 실패 |
+| 2 | 사용법 오류 |
 
 `manta search` 빈 결과는 에러가 아니다.
 
@@ -342,8 +340,8 @@ stdout: No tasks matched "oauth".
 
 ```text
 exit code: 1
-stderr: TASK_NOT_FOUND: task-999
-stdout: 비어 있음
+stderr: Error: task not found: task-999
+stdout: (결과 데이터 없음)
 ```
 
 ## 구현 순서

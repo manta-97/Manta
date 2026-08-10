@@ -2,6 +2,8 @@
 
 > **ARCHIVED (TS/Electron era).** 2026-08부터 스택은 Go + Wails로 재구현한다.
 > 이 문서는 이전 구현의 의사결정·교훈 참고용이다. 현재 로드맵 완료 상태가 아니다.
+> CLI 오류의 `[CODE]` 접두·세분 코드 등 일부 계약은 폐기되었고, 현재 기준은
+> [cli-design.md](cli-design.md)의 정석 exit 0/1/2·사람용 stderr다.
 >
 > 2026-06-10 · manta-repo 브랜치 `phase1-local-linear`
 

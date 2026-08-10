@@ -30,7 +30,7 @@ CLI 표면, root SQLite 역할, context all-or-nothing)은 검증됐다.
 ## 유지하는 것
 
 - 디렉토리/파일 계약 (`tasks/{todo,in-progress,done}/`, frontmatter 3필드)
-- CLI 명령 표면과 오류 정책 (exit 0/1/2, `[CODE] message`)
+- CLI 명령 표면과 종료·출력 계약 (exit 0/1/2 정석, 사람용 stderr, stdout=데이터)
 - root SQLite 위치와 역할 (`~/.manta/manta.sqlite`, rebuildable index)
 - context all-or-nothing, import/export 번들 v1 계약
 - CLI와 GUI가 같은 core를 쓰는 adapter 구조

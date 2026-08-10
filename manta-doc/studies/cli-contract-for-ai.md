@@ -1,5 +1,10 @@
 # AI가 사용할 수 있는 CLI 계약 설계
 
+> **Note (2026-08):** 제품 CLI 계약은 Unix 정석에 맞춰 단순화했다.
+> 공개 기준은 [docs/cli-design.md](../docs/cli-design.md)의 exit `0|1|2`,
+> 사람용 stderr, stdout/stderr 분리다. 아래 본문은 학습용이며,
+> 대괄호 코드/`UNKNOWN_COMMAND` 문자열 프로토콜은 제품 필수 계약이 아니다.
+
 ## 이 챕터의 목표
 
 Manta에서 CLI는 단순한 개발자용 보조 도구가 아니다.
@@ -141,33 +146,32 @@ manta search auth --json | jq '.tasks[].id'
 사람은 오류 문구를 읽고 상황을 이해할 수 있다.
 AI와 스크립트는 exit code를 먼저 본다.
 
-기본 원칙은 단순하다.
+정석에 가깝게 세 가지만 쓴다.
 
 | exit code | 의미 |
 |---|---|
-| `0` | 명령이 성공했다 |
-| `1` | 명령이 실패했다 |
+| `0` | 성공 (빈 검색 결과·idempotent no-op 포함) |
+| `1` | 실행 실패 (task 없음, I/O, 잘못된 데이터 등) |
+| `2` | 사용법 오류 (unknown command, 잘못된 옵션/인자 개수) |
 
-처음부터 많은 exit code를 만들 필요는 없다.
-하지만 성공과 실패는 반드시 구분되어야 한다.
+처음부터 더 많은 exit code를 만들 필요는 없다.
 
-예를 들어 검색 결과가 없는 상황은 실패가 아닐 수 있다.
+예를 들어 검색 결과가 없는 상황은 실패가 아니다.
 
 ```bash
 manta search "oauth"
 ```
 
-검색이 정상적으로 실행됐고 결과만 없다면 exit code는 0이 자연스럽다.
-반대로 task id 형식이 잘못됐거나 파일을 읽을 수 없다면 실패다.
+검색이 정상 실행되고 결과만 없다면 exit 0이 자연스럽다.
+task가 없거나 파일을 읽을 수 없으면 exit 1이다.
+인자를 빼먹거나 모르는 명령이면 exit 2다.
 
 ```bash
-manta show abc
-manta show task-999
+manta show                    # usage → 2
+manta show task-999           # not found → 1
 ```
 
-이런 경우는 exit code 1이어야 한다.
-
-Manta에서 중요한 판단 기준은 이것이다.
+판단 기준:
 
 > 명령이 요청한 동작을 정상적으로 수행했는가?
 
@@ -175,45 +179,34 @@ Manta에서 중요한 판단 기준은 이것이다.
 
 ---
 
-## 5. 오류는 종류를 나눈다
+## 5. 오류 메시지는 사람이 읽고, 종류는 exit로 나눈다
 
-CLI 오류를 모두 “에러가 났다”로 뭉개면 AI가 복구 행동을 선택하기 어렵다.
-Manta에서는 최소한 다음 세 가지를 구분하는 것이 좋다.
+공개 계약에서 안정적인 1차 신호는 **exit code**다.
+stderr는 사람이 다음 행동을 고를 수 있는 문장으로 쓴다.
 
-| 분류 | 예시 | 의미 |
-|---|---|---|
-| unknown command | `manta xyz` | 그런 명령어가 없다 |
-| usage error | `manta show` | 명령어는 있지만 입력이 잘못됐다 |
-| runtime failure | `manta show task-1` 중 파일 읽기 실패 | 입력은 맞지만 실행 중 실패했다 |
+| 분류 | exit | 예시 |
+|---|---:|---|
+| unknown command / usage | 2 | `manta xyz`, `manta show` (인자 없음) |
+| 실행 실패 | 1 | task 없음, 파일 읽기 실패 |
 
-각 오류는 사용자가 다음 행동을 알 수 있어야 한다.
-
-unknown command 예시:
+예시:
 
 ```text
-Error: UNKNOWN_COMMAND
-Unknown command: xyz.
-Run `manta help` to see available commands.
+Error: unknown command "xyz"
+Run 'manta --help' for usage.
 ```
-
-usage error 예시:
 
 ```text
-Error: USAGE_ERROR
-Missing required argument: id.
-Run `manta help show` for usage.
+Error: accepts 1 arg(s), received 0
+Run 'manta show --help' for usage.
 ```
-
-runtime failure 예시:
 
 ```text
-Error: TASK_NOT_FOUND
-Task not found: task-999.
-Run `manta list` to see available tasks.
+Error: task not found: task-999
 ```
 
-여기서 중요한 것은 문구의 화려함이 아니다.
-오류의 종류가 안정적으로 드러나야 한다는 점이다.
+기계용 대괄호 코드(`USAGE_ERROR` 등)를 필수 프로토콜로 고정하지 않는다.
+구조화 출력이 필요하면 나중에 `--json` 같은 선택 경로로 확장한다.
 
 ---
 

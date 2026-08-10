@@ -234,39 +234,72 @@ Phase 2 이후 `manta context`는 아래 섹션이 있으면 활용할 수 있�
 
 ---
 
-## 오류 분류
+## CLI 출력·종료 계약 (정석 정렬)
 
-task 조회 공통 오류는 구분해야 한다.
-AI가 직접 CLI를 쓰려면 실패 신호가 정확해야 한다.
+Unix/GNU 관례와 12-factor CLI에 맞춘다.
+공개 계약은 **exit code + 사람용 메시지 + stdout/stderr 분리**다.
+기계용 `[CODE]` 접두 프로토콜이나 sysexits(64+)는 쓰지 않는다.
 
-| 코드 | 의미 |
-|---|---|
-| `INVALID_TASK_ID` | task id 형식이 잘못됨 |
-| `TASK_NOT_FOUND` | 형식은 맞지만 task가 없음 |
-| `DUPLICATE_TASK_ID` | 여러 상태 폴더에 같은 id가 존재함 |
-| `TASK_FILE_UNREADABLE` | 파일 권한 등으로 읽을 수 없음 |
-| `TASK_FILE_MALFORMED` | task 파일 구조가 깨짐 |
+### Exit code
+
+| exit | 의미 | 예 |
+|---:|---|---|
+| `0` | 성공 | 생성·조회·상태 변경 성공, 검색 0건, idempotent no-op |
+| `1` | 실행 실패 | task 없음, id 형식 오류, 파일 I/O, 데이터 깨짐, index 불일치 |
+| `2` | 사용법 오류 | unknown command, 잘못된 옵션, 인자 개수 부족/과다 |
 
 규칙:
 
-- 모든 조회 실패를 `TASK_NOT_FOUND`나 `UNKNOWN`으로 뭉개지 않는다.
-- 중복 ID는 데이터 무결성 오류다.
-- CLI stderr는 사람이 읽을 수 있어야 한다.
-- error code는 테스트, AI 분기, GUI 표시를 위한 안정 식별자다.
+- 스크립트·AI의 1차 분기는 exit code다.
+- **CLI 사용법 문제만 2**, 그 외 실패는 1로 단순화한다.
+- 이미 목표 상태인 `start`/`done`, 이미 초기화된 `init` 등은 **idempotent 성공(exit 0)** + 짧은 안내.
+- 검색·목록이 비어 있는 것은 실패가 아니다 (exit 0).
 
-### CLI 전역 오류 정책 (task-11)
+### stdout / stderr
 
-위의 코드는 core Result의 분류다. CLI 표면에서는 세 분류와 exit code로 수렴한다.
+| 스트림 | 용도 |
+|---|---|
+| stdout | 성공 시의 결과 데이터 (목록, 본문, export JSON, context 문서 등) |
+| stderr | 오류, 경고, (선택) 짧은 상태·안내 메시지 |
 
-| 분류 | stderr 형식 | exit code |
-|---|---|---:|
-| unknown command | `[UNKNOWN_COMMAND] ...` | `2` |
-| usage error (잘못된 옵션/인자, `INVALID_TASK_ID` 포함) | `[USAGE_ERROR] ...` | `2` |
-| runtime failure (그 외 core 실패, I/O 실패) | `[RUNTIME_FAILURE] ...` | `1` |
+규칙:
 
-- 성공과 안전한 no-op(이미 목표 상태인 `start`/`done`, `ALREADY_INITIALIZED`)은 exit `0`.
-- 오류 경로에서 stdout은 비어 있다.
-- stderr에 echo되는 사용자 입력은 한 줄로 정규화(ANSI/제어문자 제거, 300자 절단)된다.
+- 실패 시 **결과 데이터를 stdout에 쓰지 않는다** (파이프·리다이렉트 오염 방지).
+- 경고는 stderr. 성공 데이터와 섞지 않는다.
+- TTY가 아닐 때 색/스피너 등은 내지 않는다 (해당 기능을 넣을 때).
+
+### 오류 메시지 (사람 우선)
+
+stderr 예:
+
+```text
+Error: unknown command "xyz"
+Error: accepts 1 arg(s), received 0
+Error: task not found: task-999
+Error: invalid task id: abc
+
+Run 'manta --help' or 'manta <command> --help' for usage.
+```
+
+규칙:
+
+- 문장으로 원인을 말한다. `[USAGE_ERROR]` 같은 대괄호 코드 접두는 쓰지 않는다.
+- 가능하면 다음에 할 일(help 안내 등)을 한 줄 덧붙인다.
+- 내부 Go 에러 타입으로 원인을 구분해도 된다. 다만 그 이름을 **외부 파싱 프로토콜로 고정하지 않는다**.
+- 머신 친화 확장이 필요하면 나중에 `--json` 등으로 선택 제공한다.
+
+### 내부 실패 구분 (구현·테스트용, 공개 프로토콜 아님)
+
+core/cli 구현에서는 원인을 나눠 다루는 것이 좋다. 예:
+
+- task id 형식 오류
+- task 없음
+- 동일 id가 여러 상태 폴더에 존재
+- 파일 읽기/쓰기 실패
+- task 파일 구조 깨짐
+
+이 구분은 **더 나은 메시지와 테스트**를 위한 것이다.
+CLI 사용자 계약은 여전히 exit `0|1|2`와 위 stderr 문장이다.
 
 ---
 
@@ -355,13 +388,13 @@ manta context task-1 task-999 task-3
 
 ```text
 exit code: 1
-stderr: [RUNTIME_FAILURE] Runtime failure: Task not found: task-999
-stdout: 비어 있음
+stderr: Error: task not found: task-999
+stdout: (결과 데이터 없음)
 ```
 
 v0 계약 노트:
 
-- stderr는 통합 오류 정책 형식을 따른다 (위 예시가 계약).
+- stderr는 사람용 문장이다 (위 오류 계약 참고).
 - `--for` 목적 프리셋은 v0에서 제외 (실사용 증거가 생기면 재검토).
 - 절단은 헤더(제목/메타) 우선 보존 + task별 예산 균등 배분 + 섹션 우선순위
   선별(Result > Decisions > Intent > 기타 > Notes, 원문 순서 유지)로 동작한다.
@@ -405,18 +438,30 @@ AI context는 상시 오른쪽 패널이 아니라 on-demand action이다.
 규칙:
 
 - export stdout은 순수 JSON이다. 깨진 task는 stderr 경고로만 보고하고 exit 0.
-- import는 쓰기 전에 번들 전체를 검증한다 — 부분 import는 없다 (`IMPORT_BUNDLE_INVALID`).
+- import는 쓰기 전에 번들 전체를 검증한다 — 부분 import는 없다. 실패 시 exit 1 + 사람용 메시지.
 - 원본 id는 보존하지 않는다. 대상 프로젝트의 id 단조 증가 규칙과 충돌 방지가 우선이다.
 - Jira/Notion/GitHub 커넥터는 이 번들 포맷의 변환기로 후속 구현한다.
 
 ---
 
-## help 명령어의 역할
+## help · version
 
-`manta help`는 단순 도움말이 아니다.
-AI가 Manta CLI를 처음 접했을 때 명령어 체계를 학습하는 진입점이다.
+정석 CLI처럼 help와 version을 바로 찾을 수 있게 한다.
 
-- `manta help`: 전체 명령어 목록 + 설명
-- `manta help <command>`: 개별 명령어의 상세 사용법, 옵션, 예시
+```bash
+manta --help
+manta -h
+manta <command> --help
+manta help              # 선택 별칭 (git 스타일)
+manta help <command>
+manta --version
+```
 
-help 출력은 사람과 AI가 모두 읽을 수 있어야 한다.
+규칙:
+
+- 구현된 명령만 노출한다 (만들지 않은 명령을 help에 올리지 않는다).
+- `Use` / `Short` / `Long` / `Example`을 명령마다 채운다 (cobra 기준).
+- help는 사람·AI 모두가 읽고 올바른 호출을 만들 수 있어야 한다.
+- “바이트 단위 이중 경로 SoT”를 1차부터 강제하지 않는다.
+  `--help`와 `help`가 같은 내용을 가리키면 충분하다.
+- 나중에 AI용 구조화 help가 필요하면 `manta help --json` 같은 선택 경로로 확장한다.
