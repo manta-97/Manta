@@ -16,23 +16,26 @@ This file is a guide for Claude Code when working on this repository.
 
 ```
 Manta/                  # 루트 — 하네스 설정 (CLAUDE.md, .claude/, .claudeignore)
-├── manta-repo/         # 코드 레포 — Go module (internal/core, cmd/manta, desktop/Wails)
-└── manta-doc/          # 문서/태스크 레포 — 설계 문서, 태스크 추적, Manifesto
+├── manta-fyne/         # 실험 코드 — Fyne + issues/*.md (현재 초점)
+├── manta-repo/         # 본선 코드 — Go+Wails/CLI (동결)
+└── manta-doc/          # 문서/태스크 — 설계 문서, 태스크 추적, Manifesto
 ```
 
-- **루트 git**: 하네스 설정만 관리 (manta-repo/, manta-doc/는 .gitignore로 제외)
-- **manta-repo git**: 코드 변경사항
-- **manta-doc git**: 문서, 태스크, 설계 결정
+- **루트 git**: 하네스 설정 (+ 문서 추적 방식은 기존과 동일). `manta-repo/`, `manta-fyne/` 는 독립 git → 루트 `.gitignore`
+- **manta-fyne git**: 실험 구현 변경
+- **manta-repo git**: 본선 (실험 중 확장 금지)
+- **manta-doc**: 문서·태스크·설계 결정
 
-각 서브 레포의 상세는 해당 레포의 `CLAUDE.md`를 참고한다.
+각 서브 폴더의 `CLAUDE.md`를 참고한다.
 
-## Stack (2026 rewrite)
+## Stack
 
-- **Backend / CLI**: Go
-- **Desktop GUI**: Wails (not Electron)
-- **파일 계약**: `internal/core`
-- **root SQLite**: `internal/engine`
-- TS monorepo (`@manta/*`) 및 Electron은 폐기됨. Phase 1부터 Go로 재구현한다.
+- **Language**: Go (TS monorepo / Electron 폐기 유지)
+- **현재 초점 (실험)**: **`manta-fyne/`** — Fyne GUI + 연 코드 레포의 `issues/*.md` (파일 원본).
+  Jira REST로 특정 티켓 일회 import, CRUD, 목록/필터.
+  합의: [manta-doc/docs/experiment-fyne-jira-local.md](manta-doc/docs/experiment-fyne-jira-local.md)
+- **동결**: `manta-repo/` (Wails, CLI-first). 실험 종료 후 재평가.
+- SQLite는 실험 구간에서 **재빌드 가능한 인덱스만** (업무 데이터 원본 금지).
 
 ## Development Workflow
 

@@ -2,6 +2,10 @@
 
 > 2026-08 스택 전환 기록. TypeScript monorepo + Electron을 폐기하고
 > Go + Wails로 Phase 1부터 재구현한다.
+>
+> **2026-08 후속:** Wails/CLI-first 구현은 **동결**. 현재 초점은
+> Fyne + 레포 로컬 `issues/*.md` dogfood 실험이다.
+> → [experiment-fyne-jira-local.md](experiment-fyne-jira-local.md)
 
 ## 왜 바꿨는가
 

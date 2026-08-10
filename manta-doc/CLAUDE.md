@@ -2,8 +2,11 @@
 
 ## Stack note
 
-구현 스택은 **Go + Wails**다 (TS monorepo / Electron 폐기).
-전환 배경: [docs/stack-go-wails.md](docs/stack-go-wails.md)
+- **현재 초점:** `manta-fyne/` — Fyne + 레포 로컬 `issues/*.md` 실험 (Jira dogfood).
+  상세: [docs/experiment-fyne-jira-local.md](docs/experiment-fyne-jira-local.md)
+- Go 유지. TS monorepo / Electron 폐기 유지.
+- `manta-repo/` (Wails + CLI-first)는 **동결** (실험 종료 후 재평가).
+  이전 전환 기록: [docs/stack-go-wails.md](docs/stack-go-wails.md)
 
 ## Structure
 
@@ -11,9 +14,10 @@
 manta-doc/
 ├── Manifesto.md              # 프로젝트 철학 원본 (의사결정 기준)
 ├── docs/                     # 설계 문서
-│   ├── stack-go-wails.md     # 스택 전환 기록
-│   ├── cli-design.md         # CLI 설계 명세
-│   └── roadmap.md            # Phase 로드맵 (Go rewrite 기준)
+│   ├── experiment-fyne-jira-local.md  # 현재 실험 합의 (우선)
+│   ├── stack-go-wails.md     # Go+Wails 전환 기록 (동결)
+│   ├── cli-design.md         # CLI 설계 명세 (동결 구간 참고)
+│   └── roadmap.md            # 로드맵 (상단 = 현재 실험)
 └── tasks/                    # 태스크 추적
     ├── todo/                 # 대기 중
     │   └── task-N/
