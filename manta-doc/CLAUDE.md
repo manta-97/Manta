@@ -2,54 +2,54 @@
 
 ## Stack note
 
-- **현재 초점:** `manta-fyne/` — Fyne + 레포 로컬 `issues/*.md` 실험 (Jira dogfood).
-  상세: [docs/experiment-fyne-jira-local.md](docs/experiment-fyne-jira-local.md)
-- Go 유지. TS monorepo / Electron 폐기 유지.
-- `manta-repo/` (Wails + CLI-first)는 **동결** (실험 종료 후 재평가).
-  이전 전환 기록: [docs/stack-go-wails.md](docs/stack-go-wails.md)
+- **현재 초점:** `manta-pup/` — Fyne + 레포 로컬 `issues/*.md` 데모 (Jira dogfood).
+  상세: [docs/demo-fyne-jira-local.md](docs/demo-fyne-jira-local.md)
+- Go. 구현은 **`manta-pup/` 만**.
 
 ## Structure
 
 ```
 manta-doc/
-├── Manifesto.md              # 프로젝트 철학 원본 (의사결정 기준)
+├── Manifesto.md              # 프로젝트 철학 원본
 ├── docs/                     # 설계 문서
-│   ├── experiment-fyne-jira-local.md  # 현재 실험 합의 (우선)
-│   ├── stack-go-wails.md     # Go+Wails 전환 기록 (동결)
-│   ├── cli-design.md         # CLI 설계 명세 (동결 구간 참고)
-│   └── roadmap.md            # 로드맵 (상단 = 현재 실험)
-└── tasks/                    # 태스크 추적
-    ├── todo/                 # 대기 중
-    │   └── task-N/
-    ├── in-progress/          # 진행 중
-    │   └── task-N/
-    └── done/                 # 완료
-        └── task-N/
+│   ├── demo-fyne-jira-local.md  # 현재 데모 합의 (우선)
+│   ├── stack-go-wails.md     # 과거 스택 기록 (참고)
+│   ├── cli-design.md         # CLI 설계 참고
+│   └── roadmap.md            # 로드맵 (상단 = 현재 데모)
+└── tasks/
+    └── pup/                  # ★ 데모 태스크 (유일한 활성 큐)
+        ├── todo/
+        ├── in-progress/
+        └── done/
 ```
 
-## Task Convention
+루트의 `tasks/{todo,in-progress,done}/` 가 남아 있어도 **데모 중에는 쓰지 않는다.**  
+에이전트는 **`tasks/pup/` 만** 본다.
 
-### 태스크 구조
-각 태스크는 **폴더** 단위로 관리한다:
+## Task Convention (pup)
+
 ```
-tasks/todo/task-8/
-├── impl.md                # 구현 기획서 (필수)
-└── design-decisions.md    # 설계 결정 기록 (선택)
+tasks/pup/todo/task-1/
+├── task.md
+├── impl.md
+└── design-decisions.md    # 선택
 ```
 
-### 상태 전환
-태스크 폴더를 상위 디렉토리 간 이동하여 상태를 변경한다:
-- `tasks/todo/task-8/` → `tasks/in-progress/task-8/` (시작)
-- `tasks/in-progress/task-8/` → `tasks/done/task-8/` (완료)
+상태 전환:
 
-### impl.md 작성 규칙
-- 글로벌 `~/.claude/CLAUDE.md`의 impl.md 규칙을 따른다
-- 코드 변경은 diff 형식으로 표현
-- 코드 적용 완료 후 impl.md는 삭제 (커밋에 포함하지 않음)
+- `tasks/pup/todo/task-N/` → `tasks/pup/in-progress/task-N/`
+- `tasks/pup/in-progress/task-N/` → `tasks/pup/done/task-N/`
+
+### impl.md
+
+- 코드 변경은 diff로 표현
+- 적용 완료 후 impl.md는 삭제 (커밋에 포함하지 않음)
+- 구현 홈: 항상 **`manta-pup/`**
 
 ## Manifesto
 
-`Manifesto.md`는 Manta의 철학 원본이다. 기능이나 설계 결정 시 다음을 기준으로 판단:
+`Manifesto.md`는 Manta의 철학 원본이다. 기능이나 설계 결정 시:
+
 - "이게 파일 기반 철학을 깨는가?"
 - "이게 단순함을 해치는가?"
 - "이게 AI 사용성을 떨어뜨리는가?"

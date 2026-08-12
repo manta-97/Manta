@@ -10,61 +10,71 @@ This file is a guide for Claude Code when working on this repository.
 - **로컬-first**: 서버/클라우드 종속 없이 사용자가 데이터를 완전히 소유
 - **단순함 우선**: 복잡한 워크플로우, 과도한 설정을 거부
 
+## 지금 무엇을 만드는가
+
+**Manta Pup 데모**만 구현한다.
+
+- 코드 홈: **`manta-pup/`** (독립 Go module + 독립 git)
+- UI: Fyne, no-design
+- 원본: 연 코드 레포의 `issues/*.md` (Markdown + YAML frontmatter)
+- SQLite: 재빌드 가능한 인덱스만 (업무 데이터 원본 금지)
+- MVP: 이슈 CRUD, 목록/검색 + status 필터, Jira REST 특정 키 일회 import
+- 합의: [manta-doc/docs/demo-fyne-jira-local.md](manta-doc/docs/demo-fyne-jira-local.md)
+
+에이전트는 **`manta-pup/` 과 `manta-doc/` 만** 다룬다.  
+다른 형제 폴더는 이 단계의 구현 대상이 아니다. (본선 전환 시 사용자가 이 파일을 수정한다.)
+
 ## Project Structure
 
-이 워크스페이스는 3개의 독립 git 레포로 구성된다:
-
 ```
-Manta/                  # 루트 — 하네스 설정 (CLAUDE.md, .claude/, .claudeignore)
-├── manta-fyne/         # 실험 코드 — Fyne + issues/*.md (현재 초점)
-├── manta-repo/         # 본선 코드 — Go+Wails/CLI (동결)
-└── manta-doc/          # 문서/태스크 — 설계 문서, 태스크 추적, Manifesto
+Manta/                  # 루트 — 하네스 설정 (CLAUDE.md, .claude/)
+├── manta-pup/          # ★ 데모 코드 (구현 홈)
+└── manta-doc/          # 문서 · pup 태스크
 ```
 
-- **루트 git**: 하네스 설정 (+ 문서 추적 방식은 기존과 동일). `manta-repo/`, `manta-fyne/` 는 독립 git → 루트 `.gitignore`
-- **manta-fyne git**: 실험 구현 변경
-- **manta-repo git**: 본선 (실험 중 확장 금지)
-- **manta-doc**: 문서·태스크·설계 결정
-
-각 서브 폴더의 `CLAUDE.md`를 참고한다.
-
-## Stack
-
-- **Language**: Go (TS monorepo / Electron 폐기 유지)
-- **현재 초점 (실험)**: **`manta-fyne/`** — Fyne GUI + 연 코드 레포의 `issues/*.md` (파일 원본).
-  Jira REST로 특정 티켓 일회 import, CRUD, 목록/필터.
-  합의: [manta-doc/docs/experiment-fyne-jira-local.md](manta-doc/docs/experiment-fyne-jira-local.md)
-- **동결**: `manta-repo/` (Wails, CLI-first). 실험 종료 후 재평가.
-- SQLite는 실험 구간에서 **재빌드 가능한 인덱스만** (업무 데이터 원본 금지).
+- **루트 git**: 하네스 설정. `manta-pup/` 은 독립 git → 루트 `.gitignore`
+- **manta-pup git**: 데모 구현 변경·커밋
+- **manta-doc**: 설계 문서, 태스크 추적, Manifesto
 
 ## Development Workflow
 
-### 태스크 기반 개발 흐름
+### 태스크
 
-1. **태스크 확인**: `manta-doc/tasks/todo/`에서 다음 작업 확인
-2. **impl.md 작성**: 태스크 폴더에 구현 기획서 작성 (`/write-impl` 또는 `/write-impl-with-code`)
-3. **구현**: `manta-repo/`에서 코드 작성 (`/write-code` 또는 직접 작성)
-4. **리뷰·커밋**: 코드 리뷰 후 커밋 (`/review-commit`)
-5. **태스크 상태 전환**: 완료 시 `in-progress/` → `done/`으로 이동
+데모 태스크만 사용한다: `manta-doc/tasks/pup/{todo,in-progress,done}/`
 
-### 빠른 수정 (impl.md 불필요)
+1. **태스크 확인**: `manta-doc/tasks/pup/todo/`
+2. **impl.md 작성**: 해당 태스크 폴더 (`/write-impl` 또는 `/write-impl-with-code`)
+3. **구현**: **`manta-pup/`** 에서만 (`/write-code` 또는 직접 작성)
+4. **리뷰·커밋**: `manta-pup` 또는 `manta-doc` 중 변경이 속한 레포
+5. **상태 전환**: `pup/todo` → `pup/in-progress` → `pup/done`
 
-간단한 버그 수정, 리팩터 등은 `/write-code`로 impl.md 없이 직접 코드를 수정한다.
+### 빠른 수정
 
-## Git Operations
+간단한 버그 수정·리팩터는 `/write-code`로 impl.md 없이 직접 수정한다.
 
-각 레포에서 개별적으로 git 작업한다:
+## Commands (`manta-pup/`)
 
 ```bash
-# manta-repo에서 커밋
-git -C manta-repo add .
-git -C manta-repo commit -m "message"
+cd manta-pup
+go test ./...
+go vet ./...
+mkdir -p bin
+go build -o bin/manta-pup .
+./bin/manta-pup
+```
 
-# manta-doc에서 커밋
+## Git
+
+```bash
+# 데모 코드
+git -C manta-pup add .
+git -C manta-pup commit -m "message"
+
+# 문서·태스크
 git -C manta-doc add .
 git -C manta-doc commit -m "message"
 ```
 
-### 브랜치 컨벤션
-- manta-repo: `task-N-short-description` (예: `task-1-module-scaffold`)
-- manta-doc: `main` 브랜치에서 직접 작업 (문서 특성상)
+### 브랜치
+- `manta-pup`: `task-N-short-description` (예: `task-1-scaffold`)
+- `manta-doc`: `main`에서 직접 작업 (문서 특성상)

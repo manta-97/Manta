@@ -1,7 +1,7 @@
-# Experiment: Fyne + repo-local issues (Jira dogfood)
+# Demo: Fyne + repo-local issues (Jira dogfood)
 
 > 상태: **active** (2026-08 합의)  
-> 성격: 의도적 실험. 1차 코드·파일 계약 초안은 버려지거나 크게 바뀔 수 있다.  
+> 성격: 의도적 데모. 1차 코드·파일 계약 초안은 버려지거나 크게 바뀔 수 있다.  
 > Manifesto 장기 방향(파일 원본, AI-usable 인터페이스, local-first)은 유지한다.  
 > **전달 순서**만 바꾼다: 완벽한 CLI/Wails 전에, 직접 쓰며 파일 형식을 발견한다.
 
@@ -19,7 +19,7 @@
 
 | 주제 | 결정 |
 |------|------|
-| 성격 | **C** — 실험. 형식·UI 코드는 폐기 가능 |
+| 성격 | **C** — 데모. 형식·UI 코드는 폐기 가능 |
 | Source of truth | **파일**. SQLite는 **재빌드 가능한 인덱스만** |
 | 이슈 단위 | 이슈 = **Markdown 파일 하나** + YAML frontmatter |
 | 위치 | **코드 레포 안** `issues/*.md`. 프로젝트 경계 = git 레포 |
@@ -31,7 +31,7 @@
 | status | **자유 문자열** (Jira 값 그대로 수용) |
 | id (1차) | **파일명 stem = id** (Jira 키 우선, 예: `PROJ-123.md`). 불변 UUID id는 나중에 |
 | 목록/필터 | **텍스트 검색 + status 필터** (인덱스에 등장한 status 값) |
-| 기존 Go/Wails/CLI | **동결** (`manta-repo`). 실험 코드는 형제 폴더 **`manta-fyne`** |
+| 기존 Go/Wails/CLI | **동결** (`manta-repo`). 데모 코드는 형제 폴더 **`manta-pup`** |
 | 종료·freeze | 구현 1차 끝 = MVP 동작 + 실사용. 계약 freeze = 같은 형식 고통이 반복될 때. **판단은 작성자** |
 
 ## Source of truth 규칙
@@ -106,11 +106,11 @@ Description body (Markdown).
 
 | 경로 | 상태 |
 |------|------|
-| `manta-repo/` (`cmd/manta`, Wails `desktop/` …) | **동결** — 실험 중 확장하지 않음 |
-| roadmap Phase 1~7 (CLI-first Local Linear …) | **일시 정지** — 실험 종료 후 재평가 |
-| **`manta-fyne/`** | **실험 구현 홈** — 독립 Go module + 독립 git. 폐기 가능 |
+| `manta-repo/` (`cmd/manta`, Wails `desktop/` …) | **동결** — 데모 중 확장하지 않음 |
+| roadmap Phase 1~7 (CLI-first Local Linear …) | **일시 정지** — 데모 종료 후 재평가 |
+| **`manta-pup/`** | **데모 구현 홈** — 독립 Go module + 독립 git. 폐기 가능 |
 
-`manta-fyne`을 본선과 분리하는 이유: 동결 골격과 섞이지 않게 하고, 실험 코드를 버리기 쉽게 한다.  
+`manta-pup`을 본선과 분리하는 이유: 동결 골격과 섞이지 않게 하고, 데모 코드를 버리기 쉽게 한다.  
 성공 시 계약·코드만 `manta-repo`로 이식하거나 lab을 승격한다. 실패 시 디렉터리 삭제.
 
 TS/Electron 폐기는 유지. Go 언어 선택도 유지. 바뀌는 것은 **1차 전달 수단(Fyne + 레포 로컬 issues)** 이다.
@@ -121,22 +121,23 @@ TS/Electron 폐기는 유지. Go 언어 선택도 유지. 바뀌는 것은 **1�
 2. **파일 계약 freeze**: 서두르지 않는다. 같은 형식 불만(필드 부족, status 난립, id 체계 등)이 반복될 때만 개정한다.
 3. 캘린더 강제 종료 없음. **진행·freeze 판단은 작성자.**
 
-실험 이후 선택지(미리 고르지 않음):
+데모 이후 선택지(미리 고르지 않음):
 
 - 계약을 고정하고 CLI/AI 표면을 다시 얹기
 - UI만 Wails 등으로 교체 (파일이 원본이면 UI 교체 비용이 상대적으로 작음)
-- 실험 코드 폐기 후 계약만 이식
+- 데모 코드 폐기 후 계약만 이식
 
 ## 구현 직전 열어 둔 것
 
 - Jira 토큰 보관 (환경변수 vs 로컬 설정 파일)
 - 로컬 신규 id prefix/시퀀스 저장 위치
 - frontmatter 키 최종 표기 (`title` vs `summary` 등)
-- 바이너리 이름 (당분간 `manta-fyne` 또는 `manta`)
+- 바이너리 이름 (당분간 `manta-pup` 또는 `manta`)
 
 ## 관련 문서
 
-- 철학: [../Manifesto.md](../Manifesto.md) (장기 신념; 이 실험은 전달 순서 실험)
-- 이전 스택 전환: [stack-go-wails.md](stack-go-wails.md) (Wails 경로; 실험 중 동결)
-- 로드맵: [roadmap.md](roadmap.md) (실험 섹션이 현재 초점)
-- 실험 코드: `../../manta-fyne/` (`README.md`, `CLAUDE.md`)
+- 철학: [../Manifesto.md](../Manifesto.md) (장기 신념; 이 데모는 전달 순서를 먼저 검증한다)
+- 이전 스택 전환: [stack-go-wails.md](stack-go-wails.md) (Wails 경로; 데모 중 동결)
+- 로드맵: [roadmap.md](roadmap.md) (데모 섹션이 현재 초점)
+- 데모 코드: `../../manta-pup/` (`README.md`, `CLAUDE.md`)
+- 데모 태스크 큐: `../tasks/pup/` (본선 `tasks/{todo,…}` 와 분리; pup = 새끼/치어 단계 dogfood)
