@@ -3,6 +3,9 @@
   <component name="GoModuleSettings" enabled="true" />
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/.claude" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea" />
+      <excludeFolder url="file://$MODULE_DIR$/manta-doc" />
       <excludeFolder url="file://$MODULE_DIR$/manta-repo" />
     </content>
     <orderEntry type="inheritedJdk" />

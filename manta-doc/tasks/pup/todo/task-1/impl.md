@@ -6,25 +6,20 @@
 `manta-pup/`에 독립 Go 모듈 + Fyne 의존성을 붙이고, **창 하나가 뜨는 최소 앱**까지 만든다.  
 이슈 CRUD·Jira import는 후속 태스크다. 이번 범위는 **개발 환경과 실행 골격**만이다.
 
-> **실행은 작성자가 한다.** 이 문서는 세팅 절차 + 적용할 코드(diff)만 담는다.  
-> 코드 레포 파일은 이 문서 작성 시점에 **수정하지 않았다**.
+> **신뢰 소스:** 레포에 커밋된 코드가 우선이다. 이 문서는 그 구현을 기록한다.  
+> PR: https://github.com/manta-97/manta-pup/pull/1
 
 ---
 
-## 현재 상태 (작성 시점)
-
-`manta-pup/` 에는 이미 다음이 있다.
+## 현재 상태 (구현 반영)
 
 | 항목 | 상태 |
 |------|------|
-| 독립 git | 있음 (`main`, first commit) |
-| `go.mod` | `module github.com/ytlee/manta-pup`, `go 1.25.1` |
-| Fyne 의존성 | **없음** (`go.sum` 없음) |
-| 앱 소스 (`main.go` 등) | **없음** |
-| `README.md` / `CLAUDE.md` / `.gitignore` | 있음 (스캐폴드 수준) |
-
-**이미 된 단계(1~3)는 건너뛰고, 4번부터 하면 된다.**  
-처음부터 다시 잡고 싶으면 1번부터 전부 따라가면 된다.
+| 독립 git | 있음 (`TASK-1` 브랜치, PR #1) |
+| `go.mod` | `module github.com/manta-97/manta-pup`, `go 1.25.1` |
+| Fyne 의존성 | `fyne.io/fyne/v2 v2.8.0` + `go.sum` |
+| 앱 소스 | `main.go`, `appmeta.go`, `appmeta_test.go` |
+| `README.md` / `CLAUDE.md` / `.gitignore` | 있음 |
 
 ---
 
@@ -35,27 +30,31 @@
    - 데모 단계라 `cmd/manta-pup` 분리는 YAGNI. 패키지가 커지면 그때 옮긴다.
 
 2. **최소 창만**
-   - 제목 `Manta` + 짧은 라벨 하나. 목록/에디터/Jira UI는 다음 태스크.
+   - 제목 `Manta Pup` + 짧은 라벨 하나. 목록/에디터/Jira UI는 다음 태스크.
    - no-design: Fyne 기본 위젯만.
 
-3. **의존성 고정 방식**
-   - `go get fyne.io/fyne/v2@latest` 후 빌드로 `go.mod`/`go.sum`을 확정한다.
-   - 버전 핀은 `go.sum`에 맡긴다. 문서에 특정 마이너 버전을 하드코딩하지 않는다.
+3. **앱 식별자**
+   - `AppID = "com.manta.pup"` (Fyne `NewWithID`용 reverse-DNS)
+   - `AppDisplayName = "Manta Pup"` (창 제목)
 
-4. **워크스페이스 인자는 아직 없음**
+4. **의존성 고정 방식**
+   - `go get fyne.io/fyne/v2@latest` 후 빌드로 `go.mod`/`go.sum`을 확정했다.
+   - 현재 핀: `v2.8.0` (`go.sum`에 상세 해시).
+
+5. **워크스페이스 인자는 아직 없음**
    - “연 코드 레포” 개념은 이슈 파일 I/O 태스크에서 넣는다.
    - 이번엔 GUI 툴킷·빌드 파이프만 검증.
 
-5. **테스트**
+6. **테스트**
    - GUI `ShowAndRun` 은 헤드리스 CI에 부적합 → 패키지 단위 스모크 테스트만.
-   - `AppName()` 같은 순수 값이 기대와 같은지 확인. TDD 강제 아님(아래 Q 참고).
+   - `AppDisplayName` / `AppID` 상수 값 검증.
 
-6. **`manta-repo` 비접촉**
+7. **`manta-repo` 비접촉**
    - 동결. import/복사 없음.
 
 ---
 
-## 세팅 절차 (작성자가 실행)
+## 세팅 절차 (재현용)
 
 워크스페이스 루트는 `Manta/` (형제 폴더에 `manta-pup/`, `manta-doc/` 가 있는 곳)를 가정한다.
 
@@ -63,7 +62,7 @@
 
 | 항목 | 확인 |
 |------|------|
-| Go | `go version` → **1.22+** (현재 환경 예: 1.25.1) |
+| Go | `go version` → **go.mod 와 맞는 툴체인** (현재 `go 1.25.1`) |
 | C 컴파일러 | Fyne는 CGO 사용. macOS: Xcode CLT (`xcode-select -p`) |
 | OS | macOS / Linux / Windows 데스크톱. 이 문서는 **macOS** 기준 |
 
@@ -95,7 +94,7 @@ git init
 
 ```bash
 cd manta-pup
-go mod init github.com/ytlee/manta-pup
+go mod init github.com/manta-97/manta-pup
 # go 지시문은 go 버전에 맞게 자동 기록됨
 ```
 
@@ -122,12 +121,12 @@ go get fyne.io/fyne/v2@latest
 
 ### 5. 소스 파일 배치
 
-아래 **파일 diff** 절의 내용을 `manta-pup/` 에 적용한다.
+아래 **파일** 절의 내용을 `manta-pup/` 에 둔다 (레포 실코드와 동일).
 
-- `main.go` (신규)
-- `appmeta.go` (신규) — 테스트 가능한 앱 메타
-- `appmeta_test.go` (신규)
-- `README.md` (실행 절 보강)
+- `main.go`
+- `appmeta.go` — 테스트 가능한 앱 메타
+- `appmeta_test.go`
+- `README.md`
 
 ### 6. 빌드 · 테스트 · 실행
 
@@ -145,19 +144,17 @@ go build -o bin/manta-pup .
 
 - `go test ./...` 통과
 - `go vet ./...` 무오류
-- 창 제목 `Manta`, 본문에 데모 안내 라벨이 보임
+- 창 제목 `Manta Pup`, 본문에 데모 안내 라벨이 보임
 - 창 닫기 시 프로세스 정상 종료
 
-### 7. (선택) 커밋 — `manta-pup` 레포에서
+### 7. 커밋 — `manta-pup` 레포에서
 
 ```bash
 cd manta-pup
 git add go.mod go.sum main.go appmeta.go appmeta_test.go README.md
 git status   # .idea 등은 올리지 말 것
 git commit -m "$(cat <<'EOF'
-Add Fyne scaffold and minimal window
-
-Wire fyne.io/fyne/v2 and a hello window so the dogfood demo can build and run.
+TASK-1 Add Fyne scaffold and minimal window
 EOF
 )"
 ```
@@ -166,11 +163,11 @@ EOF
 
 ## 완료 기준 (이 태스크)
 
-- [ ] `fyne.io/fyne/v2` 가 `go.mod` / `go.sum`에 있다
-- [ ] `go build -o bin/manta-pup .` 성공
-- [ ] `go test ./...` / `go vet ./...` 성공
-- [ ] 실행 시 최소 창이 뜬다
-- [ ] `manta-repo` 변경 없음
+- [x] `fyne.io/fyne/v2` 가 `go.mod` / `go.sum`에 있다
+- [x] `go build -o bin/manta-pup .` 성공
+- [x] `go test ./...` / `go vet ./...` 성공
+- [x] 실행 시 최소 창이 뜬다
+- [x] `manta-repo` 변경 없음
 
 **범위 밖**
 
@@ -182,25 +179,21 @@ EOF
 
 ---
 
-## 파일: `manta-pup/appmeta.go` (신규)
+## 파일: `manta-pup/appmeta.go`
 
 앱 ID·표시 이름을 패키지 상수로 둔다. GUI 없이도 테스트 가능.
 
-```diff
-+package main
-+
-+// AppID is the Fyne application unique ID (reverse-DNS style).
-+const AppID = "com.manta.fyne"
-+
-+// AppDisplayName is the window title and human-facing product name for this demo binary.
-+const AppDisplayName = "Manta"
+```go
+package main
+
+const AppID = "com.manta.pup"
+
+const AppDisplayName = "Manta Pup"
 ```
 
 ---
 
-## 파일: `manta-pup/main.go` (신규)
-
-파일 전체:
+## 파일: `manta-pup/main.go`
 
 ```go
 package main
@@ -216,7 +209,7 @@ func main() {
 	application := app.NewWithID(AppID)
 	window := application.NewWindow(AppDisplayName)
 
-	statusLabel := widget.NewLabel("manta-pup demo scaffold — issues UI comes next")
+	statusLabel := widget.NewLabel("manta-pup demo scaffold - issues UI comes next")
 	window.SetContent(container.NewVBox(statusLabel))
 	window.Resize(fyne.NewSize(480, 320))
 
@@ -226,83 +219,68 @@ func main() {
 
 ---
 
-## 파일: `manta-pup/appmeta_test.go` (신규)
+## 파일: `manta-pup/appmeta_test.go`
 
-```diff
-+package main
-+
-+import "testing"
-+
-+func TestAppDisplayName(t *testing.T) {
-+	if AppDisplayName != "Manta" {
-+		t.Fatalf("AppDisplayName = %q, want %q", AppDisplayName, "Manta")
-+	}
-+}
-+
-+func TestAppID(t *testing.T) {
-+	if AppID == "" {
-+		t.Fatal("AppID must not be empty")
-+	}
-+}
+```go
+package main
+
+import "testing"
+
+func TestAppDisplayName(t *testing.T) {
+	if AppDisplayName != "Manta Pup" {
+		t.Fatalf("AppDisplayName = %q, want %q", AppDisplayName, "Manta Pup")
+	}
+}
+
+func TestAppID(t *testing.T) {
+	if AppID != "com.manta.pup" {
+		t.Fatalf("AppID = %q, want %q", AppID, "com.manta.pup")
+	}
+}
 ```
 
 ---
 
-## 파일: `manta-pup/README.md` (갱신)
+## 파일: `manta-pup/README.md`
 
-기존 소개 단락은 유지하고, **구현은 아직 비어 있다** 문장을 실행 가이드로 교체한다.
+```md
+# manta-pup
 
-```diff
- # manta-pup
- 
- Manta **dogfood 데모** 코드 홈.
- 
- - Fyne GUI (no-design)
- - 연 코드 레포의 `issues/*.md` 가 source of truth
- - Jira REST: 특정 티켓 일회 import
- - `manta-repo` (Wails/CLI) 와 분리 — 폐기·이식 쉽게
- 
- 합의 문서: [`../manta-doc/docs/demo-fyne-jira-local.md`](../manta-doc/docs/demo-fyne-jira-local.md)
- 
--구현은 아직 비어 있다. 앱 코드는 이 디렉터리에만 추가한다.
-+## 요구 사항
-+
-+- Go 1.22+
-+- CGO + 시스템 GUI 툴체인 (macOS: Xcode Command Line Tools)
-+
-+## 빌드 / 실행
-+
-+```bash
-+go test ./...
-+go vet ./...
-+mkdir -p bin
-+go build -o bin/manta-pup .
-+./bin/manta-pup
-+```
-+
-+앱 코드는 이 디렉터리에만 추가한다. `manta-repo` 는 동결이다.
+Manta **Pup 데모** 코드
+
+- Fyne GUI (no-design)
+
+## 요구사항
+
+- Go 1.22+
+- CGO
+
+## 빌드 / 실행
+
+    go test ./...
+    go vet ./...
+    mkdir -p bin
+    go build -o bin/manta-pup .
+    ./bin/manta-pup
 ```
 
 ---
 
-## 파일: `manta-pup/go.mod` (의존성 — 명령으로 생성)
+## 파일: `manta-pup/go.mod` (의존성)
 
-직접 버전을 박지 말고 4번 절차의 `go get` / `go build` 결과물을 사용한다.  
-적용 후 대략 이런 형태가 된다 (버전 숫자는 실행 시점 latest).
+```go
+module github.com/manta-97/manta-pup
 
-```diff
- module github.com/ytlee/manta-pup
- 
- go 1.25.1
-+
-+require fyne.io/fyne/v2 v2.x.x
-+
-+require (
-+	// fyne transitive deps … go mod이 채움
-+)
+go 1.25.1
+
+require fyne.io/fyne/v2 v2.8.0
+
+require (
+	// fyne transitive deps … go mod이 채움
+)
 ```
 
-`go.sum` 은 `go build` / `go test` 가 생성한다. 커밋에 포함한다.
+`go.sum` 은 빌드/테스트로 생성되어 커밋에 포함되어 있다.
 
 ---
 
@@ -310,10 +288,10 @@ func main() {
 
 1. `cd manta-pup`
 2. `go get fyne.io/fyne/v2@latest`
-3. `appmeta.go`, `main.go`, `appmeta_test.go` 생성 (위 확정본)
+3. `appmeta.go`, `main.go`, `appmeta_test.go` 생성 (위 실코드)
 4. `README.md` 패치
 5. `go test ./... && go vet ./... && go build -o bin/manta-pup . && ./bin/manta-pup`
-6. 문제 없으면 `manta-pup` git 커밋
+6. `manta-pup` git 커밋
 
 ---
 
